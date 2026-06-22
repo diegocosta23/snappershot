@@ -72,7 +72,7 @@ class MainController:
         self.window.set_status(f"Tar printscreen: {company}")
         self.window.append_log(f"Startar printscreen för {company}")
 
-        timestamp = self.storage_service._timestamp()
+        timestamp = self.storage_service.timestamp()
         screenshot_path = self.storage_service.screenshot_path(company, timestamp)
         zip_path = self.storage_service.zip_path(company, timestamp)
 
