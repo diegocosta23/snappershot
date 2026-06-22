@@ -5,10 +5,8 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QApplication
 
+from ..controller.capture_pipeline import CapturePipeline
 from ..services.company_service import CompanyService
-from ..services.screenshot_service import ScreenshotService
-from ..services.storage_service import StorageService
-from ..services.zip_service import ZipService
 
 if TYPE_CHECKING:
     from ..ui.main_window import MainWindow
@@ -19,10 +17,8 @@ class MainController:
 
     def __init__(self, window: MainWindow) -> None:
         self.window = window
+        self.pipeline = CapturePipeline()
         self.company_service = CompanyService()
-        self.screenshot_service = ScreenshotService()
-        self.storage_service = StorageService()
-        self.zip_service = ZipService()
         self.selected_company = ""
         self.latest_zip_path = ""
 
@@ -72,21 +68,22 @@ class MainController:
         self.window.set_status(f"Tar printscreen: {company}")
         self.window.append_log(f"Startar printscreen för {company}")
 
-        timestamp = self.storage_service.timestamp()
-        screenshot_path = self.storage_service.screenshot_path(company, timestamp)
-        zip_path = self.storage_service.zip_path(company, timestamp)
-
         try:
-            self.screenshot_service.capture_desktop(screenshot_path)
-            self.window.set_progress(55)
-            self.window.append_log(f"Sparad bild: {screenshot_path}")
+            result = self.pipeline.capture_company(company)
 
-            self.zip_service.create_zip(zip_path, [screenshot_path])
-            self.latest_zip_path = str(zip_path)
-            self.window.set_result(zip_path.name, str(zip_path))
+            if not result.success or result.zip_path is None:
+                self.window.show_error(result.message or "Capture misslyckades.")
+                return False
+
+            self.latest_zip_path = str(result.zip_path)
+            self.window.set_progress(55)
+            if result.screenshot_path is not None:
+                self.window.append_log(f"Sparad bild: {result.screenshot_path}")
+
+            self.window.set_result(result.zip_path.name, str(result.zip_path))
             self.window.set_progress(100)
-            self.window.show_success(f"Klart: {company}")
-            self.window.append_log(f"ZIP skapad: {zip_path}")
+            self.window.show_success(f"Klart: {result.company_name}")
+            self.window.append_log(f"ZIP skapad: {result.zip_path}")
             return True
         except Exception as exc:
             self.window.show_error(str(exc))
