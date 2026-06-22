@@ -1,0 +1,70 @@
+[
+    {
+        "ticker": "ABB",
+        "name": "ABB Ltd"
+    },
+    {
+        "ticker": "ATCO-A",
+        "name": "Atlas Copco A"
+    },
+    {
+        "ticker": "ATCO-B",
+        "name": "Atlas Copco B"
+    },
+    {
+        "ticker": "ASSA-B",
+        "name": "Assa Abloy"
+    },
+    {
+        "ticker": "AZN",
+        "name": "AstraZeneca"
+    },
+    {
+        "ticker": "ERIC-B",
+        "name": "Ericsson B"
+    },
+    {
+        "ticker": "EVO",
+        "name": "Evolution"
+    },
+    {
+        "ticker": "HEXA-B",
+        "name": "Hexagon"
+    },
+    {
+        "ticker": "INVE-B",
+        "name": "Investor B"
+    },
+    {
+        "ticker": "NIBE-B",
+        "name": "NIBE"
+    },
+    {
+        "ticker": "SAND",
+        "name": "Sandvik"
+    },
+    {
+        "ticker": "SEB-A",
+        "name": "SEB A"
+    },
+    {
+        "ticker": "SHB-A",
+        "name": "Handelsbanken A"
+    },
+    {
+        "ticker": "SWED-A",
+        "name": "Swedbank A"
+    },
+    {
+        "ticker": "TEL2-B",
+        "name": "Tele2 B"
+    },
+    {
+        "ticker": "TELIA",
+        "name": "Telia"
+    },
+    {
+        "ticker": "VOLV-B",
+        "name": "Volvo B"
+    }
+]

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pywinauto import Desktop
 
 
@@ -15,7 +17,7 @@ class TradingViewDesktop:
     """
 
     def __init__(self) -> None:
-        self.window = None
+        self.window: Any | None = None
 
     def connect(self) -> bool:
         """
@@ -62,6 +64,7 @@ class TradingViewDesktop:
 
         try:
 
+            assert self.window is not None
             self.window.set_focus()
             return True
 
@@ -81,6 +84,7 @@ class TradingViewDesktop:
 
         try:
 
+            assert self.window is not None
             self.window.maximize()
             return True
 
@@ -100,6 +104,7 @@ class TradingViewDesktop:
 
         try:
 
+            assert self.window is not None
             self.window.restore()
             return True
 
@@ -116,6 +121,8 @@ class TradingViewDesktop:
             return ""
 
         try:
+
+            assert self.window is not None
             return self.window.window_text()
 
         except Exception:
@@ -132,3 +139,16 @@ class TradingViewDesktop:
             and self.maximize()
             and self.activate()
         )
+
+
+if __name__ == "__main__":
+
+    tv = TradingViewDesktop()
+
+    print("TradingView hittad:", tv.connect())
+
+    if tv.window:
+        print("Titel:", tv.title())
+        print("Redo:", tv.ready())
+    else:
+        print("TradingView Desktop är inte igång.")
