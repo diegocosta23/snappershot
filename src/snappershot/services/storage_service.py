@@ -17,11 +17,11 @@ class StorageService:
         return cleaned or "Untitled"
 
     @staticmethod
-    def _timestamp() -> str:
+    def timestamp() -> str:
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     def artifact_stem(self, company: str, timestamp: str | None = None) -> str:
-        return f"{self._sanitize(company)}_{timestamp or self._timestamp()}"
+        return f"{self._sanitize(company)}_{timestamp or self.timestamp()}"
 
     def company_folder(self, company: str) -> Path:
         folder = self.base_dir / self._sanitize(company)
