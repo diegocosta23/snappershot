@@ -1,21 +1,22 @@
 from __future__ import annotations
 
-from src.snappershot.tradingview.desktop import TradingViewDesktop
+from snappershot.tradingview.automation import TradingViewAutomation
 
 
 class MainController:
-    """
-    Huvudkontroller.
 
-    All logik ska gå genom denna klass.
-    GUI får aldrig prata direkt med TradingView.
-    """
+    def __init__(self):
 
-    def __init__(self) -> None:
-        self.desktop = TradingViewDesktop()
+        self.engine = TradingViewAutomation()
 
-    def check_connection(self) -> bool:
-        """
-        Kontrollerar om TradingView Desktop är igång.
-        """
-        return self.desktop.is_running()
+    def capture_company(
+        self,
+        company: str,
+    ) -> bool:
+
+        company = company.strip()
+
+        if not company:
+            return False
+
+        return self.engine.capture(company)
