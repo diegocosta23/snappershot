@@ -4,64 +4,76 @@ from ..models.company import Company
 
 
 class CompanyService:
-    """
-    Hanterar sökning och uppslag av företag.
-    """
+    """Laddar och söker bolag för den första Capture-versionen."""
 
     def __init__(self) -> None:
         self._companies = [
-            Company("Investor", "INVE B"),
-            Company("Volvo", "VOLV B"),
-            Company("Evolution", "EVO"),
-            Company("Atlas Copco", "ATCO A"),
-            Company("Atlas Copco B", "ATCO B"),
+            Company("Investor B", "INVE B"),
+            Company("Investor A", "INVE A"),
+            Company("Swedbank A", "SWED A"),
+            Company("Sandvik", "SAND"),
+            Company("Lifco B", "LIFCO B"),
+            Company("Ratos B", "RATO B"),
             Company("ABB", "ABB"),
+            Company("Atlas Copco A", "ATCO A"),
+            Company("Atlas Copco B", "ATCO B"),
+            Company("Volvo B", "VOLV B"),
+            Company("SEB A", "SEB A"),
+            Company("Handelsbanken A", "SHB A"),
+            Company("Handelsbanken B", "SHB B"),
+            Company("Evolution", "EVO"),
+            Company("Ericsson B", "ERIC B"),
+            Company("Saab B", "SAAB B"),
+            Company("Nibe B", "NIBE B"),
+            Company("Assa Abloy B", "ASSA B"),
             Company("Hexagon", "HEXA B"),
-            Company("Saab", "SAAB B"),
-            Company("Ericsson", "ERIC B"),
-            Company("Swedbank", "SWED A"),
-            Company("SEB", "SEB A"),
-            Company("Handelsbanken", "SHB A"),
-            Company("Nordea", "NDA SE"),
-            Company("Boliden", "BOL"),
-            Company("Securitas", "SECU B"),
-            Company("Assa Abloy", "ASSA B"),
-            Company("AstraZeneca", "AZN"),
         ]
+
+    @staticmethod
+    def _normalize(text: str) -> str:
+        return "".join(char for char in text.lower() if char.isalnum())
 
     def search(self, text: str) -> list[Company]:
-        """
-        Söker företag efter namn eller ticker.
-        """
+        """Söker företag efter namn eller ticker med enkel fuzzy-matchning."""
 
-        text = text.lower().strip()
+        query = self._normalize(text)
+        if not query:
+            return list(self._companies)
 
-        return [
-            company
-            for company in self._companies
-            if text in company.name.lower()
-            or text in company.ticker.lower()
-        ]
+        matches: list[tuple[int, int, Company]] = []
+
+        for index, company in enumerate(self._companies):
+            name = self._normalize(company.name)
+            ticker = self._normalize(company.ticker)
+
+            if query == name or query == ticker:
+                score = 0
+            elif name.startswith(query) or ticker.startswith(query):
+                score = 1
+            elif query in name or query in ticker:
+                score = 2
+            else:
+                continue
+
+            matches.append((score, index, company))
+
+        matches.sort(key=lambda item: (item[0], item[1]))
+        return [company for _, _, company in matches]
 
 
 if __name__ == "__main__":
-
     service = CompanyService()
 
     while True:
-
         query = input("\nSök företag (Enter för att avsluta): ").strip()
-
         if not query:
             break
 
         results = service.search(query)
-
         if not results:
             print("Inga träffar.")
             continue
 
         print()
-
         for company in results:
             print(f"{company.name} ({company.ticker})")
