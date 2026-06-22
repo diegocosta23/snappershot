@@ -6,21 +6,16 @@ from pywinauto import Desktop
 
 
 class WindowManager:
-    """
-    Ansvarar för att hitta och aktivera TradingView Desktop.
-    """
+    """Ansvarar för att hitta och aktivera TradingView Desktop."""
 
     def __init__(self) -> None:
         self.window: Any | None = None
 
     def find(self) -> bool:
-
         desktop = Desktop(backend="uia")
 
         for window in desktop.windows():
-
             title = window.window_text()
-
             if "TradingView" in title:
                 self.window = window
                 return True
@@ -28,8 +23,7 @@ class WindowManager:
         self.window = None
         return False
 
-    def activate(self) -> bool:
-
+    def prepare(self) -> bool:
         if not self.find():
             return False
 
@@ -52,9 +46,32 @@ class WindowManager:
 
         return True
 
-    def title(self) -> str:
+    def activate(self) -> bool:
+        return self.prepare()
 
+    def maximize(self) -> bool:
+        if self.window is None and not self.find():
+            return False
+
+        assert self.window is not None
+        try:
+            self.window.maximize()
+            return True
+        except Exception:
+            return False
+
+    def restore(self) -> bool:
+        if self.window is None and not self.find():
+            return False
+
+        assert self.window is not None
+        try:
+            self.window.restore()
+            return True
+        except Exception:
+            return False
+
+    def title(self) -> str:
         if self.window is None:
             return ""
-
         return self.window.window_text()
