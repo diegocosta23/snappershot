@@ -1,28 +1,24 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from ..services.company_service import CompanyService
 from ..tradingview.engine import ScreenshotEngine
 
 
 class CapturePipeline:
     """
-    Hela arbetsflödet för SnapperShot.
-
-    Version 1:
-
-        Företag
-            ↓
-        TradingView Desktop
-            ↓
-        Sök ticker
-            ↓
-        Klar
-
-    Timeframes och screenshots kommer i nästa steg.
+    Kör hela capture-processen för ett företag.
     """
 
-    def __init__(self) -> None:
+    DEFAULT_TIMEFRAMES = [
+        "1W",
+        "1D",
+        "4H",
+        "45M",
+    ]
 
+    def __init__(self) -> None:
         self.company_service = CompanyService()
         self.engine = ScreenshotEngine()
 
@@ -38,23 +34,41 @@ class CapturePipeline:
             print("Company not found.")
             return False
 
-        print(f"Found company: {company.name}")
-        print(f"Ticker: {company.ticker}")
-
         if not self.engine.prepare():
-            print("TradingView Desktop is not ready.")
+            print("TradingView Desktop not found.")
             return False
 
-        print("TradingView ready.")
-
         #
-        # Viktigt:
-        # TradingView ska ALLTID få tickern
+        # Öppna TradingViews Symbol Search.
         #
-        if not self.engine.search_company(company.ticker):
-            print("Could not search ticker.")
+        if not self.engine.open_symbol_search():
+            print("Could not open Symbol Search.")
             return False
 
-        print("Ticker loaded successfully.")
+        print()
+        print("=" * 60)
+        print("SELECT THE COMPANY INSIDE TRADINGVIEW")
+        print("WHEN THE CHART HAS LOADED PRESS ENTER HERE")
+        print("=" * 60)
+
+        input()
+
+        selected_timeframes = timeframes or self.DEFAULT_TIMEFRAMES
+
+        output_folder = Path("captures") / company.name
+        output_folder.mkdir(parents=True, exist_ok=True)
+
+        for timeframe in selected_timeframes:
+
+            print(f"Capturing {timeframe}")
+
+            if not self.engine.capture_timeframe(
+                timeframe,
+                output_folder / f"{timeframe}.png",
+            ):
+                print(f"Failed on {timeframe}")
+                return False
+
+        print("Capture completed.")
 
         return True
