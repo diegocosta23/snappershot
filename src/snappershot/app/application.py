@@ -4,16 +4,20 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from src.snappershot.ui.main_window import MainWindow
-from src.snappershot.ui.styles import STYLE
+from ..controller.main_controller import MainController
+from ..ui.main_window import MainWindow
+from ..ui.styles import STYLE
 
 
 def run() -> None:
     app = QApplication(sys.argv)
-
     app.setStyleSheet(STYLE)
 
     window = MainWindow()
-    window.show()
+    controller = MainController(window)
+    window.controller = controller  # type: ignore[attr-defined]
 
+    app.aboutToQuit.connect(controller.shutdown)
+
+    window.show()
     sys.exit(app.exec())
