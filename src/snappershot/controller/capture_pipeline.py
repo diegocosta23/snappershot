@@ -12,14 +12,6 @@ from ..tradingview.engine import ScreenshotEngine
 class CapturePipeline:
     """
     Kör hela capture-processen för ett företag.
-
-    Ansvar:
-        - hitta bolag
-        - öppna TradingViews symbol search
-        - vänta på manuellt symbolval
-        - ta screenshots för vald timeframe-sekvens
-        - skapa ZIP
-        - returnera ett CaptureResult
     """
 
     DEFAULT_TIMEFRAMES = [
