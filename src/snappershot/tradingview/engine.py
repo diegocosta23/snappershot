@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import time
+from pathlib import Path
 
 from .search import TradingViewSearch
 from .snapshot import SnapshotEngine
@@ -13,15 +13,13 @@ class ScreenshotEngine:
     Central motor för SnapperShot.
 
     Ansvar:
-
         • aktivera TradingView
-        • söka ticker
+        • öppna Symbol Search
         • byta timeframe
-        • ta screenshots
+        • ta screenshots av TradingView-fönstret
     """
 
     def __init__(self) -> None:
-
         self.window = WindowManager()
         self.search = TradingViewSearch()
         self.timeframe = TimeframeController()
@@ -31,44 +29,70 @@ class ScreenshotEngine:
         """
         Säkerställ att TradingView Desktop är redo.
         """
-
         return self.window.prepare()
 
     def is_ready(self) -> bool:
-
         return self.prepare()
 
-    def search_company(self, ticker: str) -> bool:
+    def open_symbol_search(self) -> bool:
         """
-        Söker efter en ticker.
-
-        Exempel:
-
-            INVE B
-            SWED A
-            ABB
-            SAND
+        Öppnar TradingViews officiella Symbol Search.
         """
-
         if not self.prepare():
             return False
 
-        print(f"[ENGINE] Searching {ticker}")
+        return self.search.open_symbol_search()
 
-        return self.search.search(ticker)
+    def search_company(self, ticker: str) -> bool:
+        """
+        Bakåtkompatibel metod.
+
+        TradingView ska hantera själva symbolvalet manuellt,
+        så den här metoden öppnar bara Symbol Search.
+        """
+        return self.open_symbol_search()
+
+    def wait_for_symbol_selection(self) -> None:
+        """
+        Enkel paus för manuell symbolvalsbekräftelse i terminalflöde.
+        """
+        input("Välj aktie i TradingView och tryck Enter här när grafen har laddat klart...")
 
     def change_timeframe(self, timeframe: str) -> bool:
-
-        print(f"[ENGINE] Timeframe {timeframe}")
+        """
+        Byter timeframe i TradingView.
+        """
+        if not self.prepare():
+            return False
 
         return self.timeframe.set(timeframe)
 
-    def capture(self, filename: str) -> bool:
+    def capture(self, filename: str | Path) -> bool:
+        """
+        Tar en screenshot av det aktiva TradingView-fönstret.
+        """
+        if not self.window.find() or self.window.window is None:
+            return False
 
-        print(f"[ENGINE] Screenshot {filename}")
+        try:
+            self.snapshot.capture_window(filename, window=self.window.window)
+            return True
+        except Exception:
+            return False
 
-        return self.snapshot.capture(filename)
+    def capture_timeframe(self, timeframe: str, filename: str | Path) -> bool:
+        """
+        Byter timeframe och tar sedan screenshot.
+        """
+        if not self.change_timeframe(timeframe):
+            return False
+
+        return self.capture(filename)
 
     def wait_chart(self, seconds: float = 1.5) -> None:
+        """
+        Tillfällig väntan för laddning av graf.
+        """
+        import time
 
         time.sleep(seconds)
