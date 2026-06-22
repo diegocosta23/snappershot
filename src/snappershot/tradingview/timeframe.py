@@ -5,16 +5,16 @@ import time
 import pyautogui
 
 
-class SnapshotEngine:
+class TimeframeController:
     """
-    Hanterar timeframe-byten och screenshots.
+    Ansvarar för att byta timeframe i TradingView.
     """
 
     LOAD_DELAY = 1.0
 
-    def change_timeframe(self, timeframe: str) -> bool:
+    def set(self, timeframe: str) -> bool:
         """
-        Byter timeframe via TradingViews snabbkommando.
+        Byter timeframe.
         """
 
         try:
@@ -26,10 +26,13 @@ class SnapshotEngine:
         except Exception:
             return False
 
-    def capture(self, filename: str) -> bool:
+    def cycle(self, timeframes: list[str]) -> bool:
         """
-        Platshållare för kommande screenshot-logik.
+        Byter igenom flera timeframes.
         """
 
-        print(f"[SNAPSHOT] {filename}")
+        for timeframe in timeframes:
+            if not self.set(timeframe):
+                return False
+
         return True

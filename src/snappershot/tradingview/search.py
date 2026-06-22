@@ -3,68 +3,41 @@ from __future__ import annotations
 import time
 
 import pyautogui
-import pyperclip
 
 from .window_manager import WindowManager
 
 
 class TradingViewSearch:
-    """Ansvarar för sökning i TradingView Desktop."""
+    """
+    Hanterar endast öppning av TradingViews Symbol Search.
 
-    SEARCH_DELAY = 0.35
+    Den här klassen väljer INTE symbol.
+    Användaren gör symbolvalet manuellt i TradingView.
+    """
+
+    SEARCH_DELAY = 0.30
 
     def __init__(self) -> None:
         self.window = WindowManager()
 
     def prepare(self) -> bool:
-        """Säkerställ att TradingView är öppet innan sökning."""
+        """
+        Hittar TradingView Desktop och ger fönstret fokus.
+        """
         return self.window.prepare()
 
-    def open_search(self) -> bool:
-        """Öppna TradingViews sökruta."""
-        try:
-            pyautogui.hotkey("ctrl", "k")
-            time.sleep(self.SEARCH_DELAY)
-            return True
-        except Exception:
+    def open_symbol_search(self) -> bool:
+        """
+        Öppnar TradingViews officiella Symbol Search.
+
+        Returnerar True om TradingView kunde fokuseras.
+        """
+
+        if not self.prepare():
             return False
 
-    def clear(self) -> None:
-        """Töm sökfältet."""
-        pyautogui.hotkey("ctrl", "a")
-        pyautogui.press("backspace")
+        pyautogui.press("/")
 
-    def write(self, company: str) -> bool:
-        """Skriver företagsnamnet."""
-        try:
-            self.clear()
-            pyperclip.copy(company)
-            pyautogui.hotkey("ctrl", "v")
-            time.sleep(self.SEARCH_DELAY)
-            return True
-        except Exception:
-            return False
+        time.sleep(self.SEARCH_DELAY)
 
-    def press_enter(self) -> None:
-        """Välj markerad träff."""
-        pyautogui.press("enter")
-
-    def search(self, company: str) -> bool:
-        """Öppnar sökrutan och skriver företaget."""
-        if not self.open_search():
-            return False
-        return self.write(company)
-
-    def search_and_select_first(self, company: str) -> bool:
-        """Sök och välj första träffen."""
-        if not self.search(company):
-            return False
-        self.press_enter()
         return True
-
-
-if __name__ == "__main__":
-    search = TradingViewSearch()
-
-    print("Försök öppna TradingView och testa sökningen.")
-    print("Metoder: prepare() -> search_and_select_first('Investor')")

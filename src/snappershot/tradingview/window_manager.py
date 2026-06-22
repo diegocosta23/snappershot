@@ -1,34 +1,29 @@
 from __future__ import annotations
 
-from .desktop import TradingViewDesktop
+from typing import Any
+
+from pywinauto import Desktop
 
 
 class WindowManager:
-<<<<<<< HEAD
     """
-    Ansvarar för TradingView-fönstret.
+    Ansvarar för att hitta och aktivera TradingView Desktop.
     """
-=======
-    """Ansvarar för att hitta och aktivera TradingView Desktop."""
->>>>>>> 65558fc5610a8653dbc268b93a15390093e18eb3
 
     def __init__(self) -> None:
+        self.window: Any | None = None
 
-<<<<<<< HEAD
-        self.desktop = TradingViewDesktop()
-
-    def prepare(self) -> bool:
-        """
-        Säkerställ att TradingView är redo.
-        """
-
-        if not self.desktop.connect():
-=======
     def find(self) -> bool:
+        """
+        Hittar TradingView-fönstret.
+        """
+
         desktop = Desktop(backend="uia")
 
         for window in desktop.windows():
+
             title = window.window_text()
+
             if "TradingView" in title:
                 self.window = window
                 return True
@@ -37,36 +32,46 @@ class WindowManager:
         return False
 
     def prepare(self) -> bool:
+        """
+        Säkerställ att TradingView är redo.
+        """
+
         if not self.find():
->>>>>>> 65558fc5610a8653dbc268b93a15390093e18eb3
             return False
 
-        self.desktop.restore()
-        self.desktop.maximize()
-        self.desktop.activate()
+        assert self.window is not None
+
+        try:
+            self.window.restore()
+        except Exception:
+            pass
+
+        try:
+            self.window.maximize()
+        except Exception:
+            pass
+
+        try:
+            self.window.set_focus()
+        except Exception:
+            pass
 
         return True
 
     def activate(self) -> bool:
-<<<<<<< HEAD
-        return self.desktop.activate()
-
-    def maximize(self) -> bool:
-        return self.desktop.maximize()
-
-    def restore(self) -> bool:
-        return self.desktop.restore()
-
-    def title(self) -> str:
-        return self.desktop.title()
-=======
+        """
+        Fokusera TradingView.
+        """
         return self.prepare()
 
     def maximize(self) -> bool:
-        if self.window is None and not self.find():
-            return False
+
+        if self.window is None:
+            if not self.find():
+                return False
 
         assert self.window is not None
+
         try:
             self.window.maximize()
             return True
@@ -74,10 +79,13 @@ class WindowManager:
             return False
 
     def restore(self) -> bool:
-        if self.window is None and not self.find():
-            return False
+
+        if self.window is None:
+            if not self.find():
+                return False
 
         assert self.window is not None
+
         try:
             self.window.restore()
             return True
@@ -85,7 +93,8 @@ class WindowManager:
             return False
 
     def title(self) -> str:
+
         if self.window is None:
             return ""
+
         return self.window.window_text()
->>>>>>> 65558fc5610a8653dbc268b93a15390093e18eb3
