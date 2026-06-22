@@ -20,15 +20,18 @@ class StorageService:
     def _timestamp() -> str:
         return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
+    def artifact_stem(self, company: str, timestamp: str | None = None) -> str:
+        return f"{self._sanitize(company)}_{timestamp or self._timestamp()}"
+
     def company_folder(self, company: str) -> Path:
         folder = self.base_dir / self._sanitize(company)
         folder.mkdir(parents=True, exist_ok=True)
         return folder
 
-    def screenshot_path(self, company: str) -> Path:
+    def screenshot_path(self, company: str, timestamp: str | None = None) -> Path:
         folder = self.company_folder(company)
-        return folder / f"{self._sanitize(company)}_{self._timestamp()}.png"
+        return folder / f"{self.artifact_stem(company, timestamp)}.png"
 
-    def zip_path(self, company: str) -> Path:
+    def zip_path(self, company: str, timestamp: str | None = None) -> Path:
         folder = self.company_folder(company)
-        return folder / f"{self._sanitize(company)}_{self._timestamp()}.zip"
+        return folder / f"{self.artifact_stem(company, timestamp)}.zip"
