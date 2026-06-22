@@ -2,13 +2,24 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..models.capture_result import CaptureResult
 from ..services.company_service import CompanyService
+from ..services.storage_service import StorageService
+from ..services.zip_service import ZipService
 from ..tradingview.engine import ScreenshotEngine
 
 
 class CapturePipeline:
     """
     Kör hela capture-processen för ett företag.
+
+    Ansvar:
+        - hitta bolag
+        - öppna TradingViews symbol search
+        - vänta på manuellt symbolval
+        - ta screenshots för vald timeframe-sekvens
+        - skapa ZIP
+        - returnera ett CaptureResult
     """
 
     DEFAULT_TIMEFRAMES = [
@@ -21,29 +32,30 @@ class CapturePipeline:
     def __init__(self) -> None:
         self.company_service = CompanyService()
         self.engine = ScreenshotEngine()
+        self.storage_service = StorageService()
+        self.zip_service = ZipService()
 
     def capture_company(
         self,
         company_name: str,
         timeframes: list[str] | None = None,
-    ) -> bool:
-
+    ) -> CaptureResult:
         company = self.company_service.find(company_name)
 
         if company is None:
-            print("Company not found.")
-            return False
+            return CaptureResult.failed("Company not found.", company_name=company_name)
 
         if not self.engine.prepare():
-            print("TradingView Desktop not found.")
-            return False
+            return CaptureResult.failed(
+                "TradingView Desktop not found.",
+                company_name=company.name,
+            )
 
-        #
-        # Öppna TradingViews Symbol Search.
-        #
         if not self.engine.open_symbol_search():
-            print("Could not open Symbol Search.")
-            return False
+            return CaptureResult.failed(
+                "Could not open Symbol Search.",
+                company_name=company.name,
+            )
 
         print()
         print("=" * 60)
@@ -51,24 +63,37 @@ class CapturePipeline:
         print("WHEN THE CHART HAS LOADED PRESS ENTER HERE")
         print("=" * 60)
 
-        input()
+        self.engine.wait_for_symbol_selection()
 
         selected_timeframes = timeframes or self.DEFAULT_TIMEFRAMES
+        output_folder = self.storage_service.create_capture_folder(company.name)
 
-        output_folder = Path("captures") / company.name
-        output_folder.mkdir(parents=True, exist_ok=True)
+        screenshots: list[Path] = []
 
         for timeframe in selected_timeframes:
+            screenshot_path = output_folder / f"{timeframe}.png"
 
-            print(f"Capturing {timeframe}")
+            if not self.engine.capture_timeframe(timeframe, screenshot_path):
+                return CaptureResult.failed(
+                    f"Failed to capture timeframe {timeframe}.",
+                    company_name=company.name,
+                )
 
-            if not self.engine.capture_timeframe(
-                timeframe,
-                output_folder / f"{timeframe}.png",
-            ):
-                print(f"Failed on {timeframe}")
-                return False
+            screenshots.append(screenshot_path)
 
-        print("Capture completed.")
+        zip_path = self.storage_service.zip_path(company.name)
 
-        return True
+        try:
+            self.zip_service.create_zip(zip_path, screenshots)
+        except Exception as exc:
+            return CaptureResult.failed(
+                f"Could not create ZIP: {exc}",
+                company_name=company.name,
+            )
+
+        return CaptureResult.completed(
+            company_name=company.name,
+            output_folder=output_folder,
+            screenshots=screenshots,
+            zip_path=zip_path,
+        )
