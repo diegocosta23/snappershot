@@ -4,9 +4,12 @@ from ..models.company import Company
 
 
 class CompanyService:
-    """Laddar och söker bolag för den första Capture-versionen."""
+    """
+    Laddar och söker bolag.
+    """
 
     def __init__(self) -> None:
+
         self._companies = [
             Company("Investor B", "INVE B"),
             Company("Investor A", "INVE A"),
@@ -31,49 +34,79 @@ class CompanyService:
 
     @staticmethod
     def _normalize(text: str) -> str:
-        return "".join(char for char in text.lower() if char.isalnum())
+
+        return "".join(
+            char
+            for char in text.lower()
+            if char.isalnum()
+        )
 
     def search(self, text: str) -> list[Company]:
-        """Söker företag efter namn eller ticker med enkel fuzzy-matchning."""
+        """
+        Returnerar alla matchande bolag.
+        """
 
         query = self._normalize(text)
+
         if not query:
             return list(self._companies)
 
         matches: list[tuple[int, int, Company]] = []
 
         for index, company in enumerate(self._companies):
+
             name = self._normalize(company.name)
             ticker = self._normalize(company.ticker)
 
             if query == name or query == ticker:
                 score = 0
+
             elif name.startswith(query) or ticker.startswith(query):
                 score = 1
+
             elif query in name or query in ticker:
                 score = 2
+
             else:
                 continue
 
             matches.append((score, index, company))
 
         matches.sort(key=lambda item: (item[0], item[1]))
+
         return [company for _, _, company in matches]
+
+    def find(self, text: str) -> Company | None:
+        """
+        Returnerar bästa träffen.
+        """
+
+        results = self.search(text)
+
+        if not results:
+            return None
+
+        return results[0]
 
 
 if __name__ == "__main__":
+
     service = CompanyService()
 
     while True:
+
         query = input("\nSök företag (Enter för att avsluta): ").strip()
+
         if not query:
             break
 
         results = service.search(query)
+
         if not results:
             print("Inga träffar.")
             continue
 
         print()
+
         for company in results:
             print(f"{company.name} ({company.ticker})")

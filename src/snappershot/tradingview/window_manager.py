@@ -1,60 +1,39 @@
 from __future__ import annotations
 
-from typing import Any
-
-from pywinauto import Desktop
+from .desktop import TradingViewDesktop
 
 
 class WindowManager:
     """
-    Ansvarar för att hitta och aktivera TradingView Desktop.
+    Ansvarar för TradingView-fönstret.
     """
 
     def __init__(self) -> None:
-        self.window: Any | None = None
 
-    def find(self) -> bool:
+        self.desktop = TradingViewDesktop()
 
-        desktop = Desktop(backend="uia")
+    def prepare(self) -> bool:
+        """
+        Säkerställ att TradingView är redo.
+        """
 
-        for window in desktop.windows():
-
-            title = window.window_text()
-
-            if "TradingView" in title:
-                self.window = window
-                return True
-
-        self.window = None
-        return False
-
-    def activate(self) -> bool:
-
-        if not self.find():
+        if not self.desktop.connect():
             return False
 
-        assert self.window is not None
-
-        try:
-            self.window.restore()
-        except Exception:
-            pass
-
-        try:
-            self.window.maximize()
-        except Exception:
-            pass
-
-        try:
-            self.window.set_focus()
-        except Exception:
-            pass
+        self.desktop.restore()
+        self.desktop.maximize()
+        self.desktop.activate()
 
         return True
 
+    def activate(self) -> bool:
+        return self.desktop.activate()
+
+    def maximize(self) -> bool:
+        return self.desktop.maximize()
+
+    def restore(self) -> bool:
+        return self.desktop.restore()
+
     def title(self) -> str:
-
-        if self.window is None:
-            return ""
-
-        return self.window.window_text()
+        return self.desktop.title()

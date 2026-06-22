@@ -1,24 +1,43 @@
 from __future__ import annotations
 
-from .desktop import TradingViewDesktop
+from .window_manager import WindowManager
 
 
-class TradingViewEngine:
+class ScreenshotEngine:
     """
-    Central motor som håller ihop all TradingView-logik.
-    Här kommer senare:
-        - sökning
-        - timeframe-byte
-        - snapshots
-        - export
-        - felhantering
+    Ansvarar för all automation inne i TradingView.
+
+    Den här klassen ska senare kunna:
+
+    • söka bolag
+    • välja rätt träff
+    • byta timeframe
+    • ta screenshot
     """
 
-    def __init__(self) -> None:
-        self.desktop = TradingViewDesktop()
+    def __init__(self):
 
-    def is_ready(self) -> bool:
+        self.window = WindowManager()
+
+    def prepare(self) -> bool:
         """
-        Returnerar True om TradingView Desktop är igång.
+        Säkerställ att TradingView är redo.
         """
-        return self.desktop.is_running()
+
+        return self.window.prepare()
+
+    def search_company(self, company_name: str):
+
+        print(f"[ENGINE] Search company: {company_name}")
+
+    def select_first_result(self):
+
+        print("[ENGINE] Select first search result")
+
+    def change_timeframe(self, timeframe: str):
+
+        print(f"[ENGINE] Change timeframe -> {timeframe}")
+
+    def capture(self, filename: str):
+
+        print(f"[ENGINE] Capture -> {filename}")
