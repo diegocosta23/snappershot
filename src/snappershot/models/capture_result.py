@@ -7,40 +7,36 @@ from pathlib import Path
 @dataclass(slots=True)
 class CaptureResult:
     """
-    Representerar resultatet av en komplett capture-session.
+    Resultatet av en komplett capture-session.
     """
 
     success: bool
-
     company_name: str
 
     message: str = ""
-
     output_folder: Path | None = None
-
     zip_path: Path | None = None
-
     screenshots: list[Path] = field(default_factory=list)
 
     @property
+    def screenshot_path(self) -> Path | None:
+        """
+        Bakåtkompatibel alias för första screenshoten.
+        """
+        if not self.screenshots:
+            return None
+        return self.screenshots[0]
+
+    @property
     def screenshot_count(self) -> int:
-        """
-        Antal skapade screenshots.
-        """
         return len(self.screenshots)
 
     @property
     def has_zip(self) -> bool:
-        """
-        True om ZIP skapades.
-        """
         return self.zip_path is not None
 
     @property
     def has_screenshots(self) -> bool:
-        """
-        True om minst en screenshot finns.
-        """
         return bool(self.screenshots)
 
     @classmethod
