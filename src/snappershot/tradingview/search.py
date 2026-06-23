@@ -9,10 +9,11 @@ from .window_manager import WindowManager
 
 class TradingViewSearch:
     """
-    Hanterar endast öppning av TradingViews Symbol Search.
+    Hanterar TradingViews Symbol Search.
 
-    Den här klassen väljer INTE symbol.
-    Användaren gör symbolvalet manuellt i TradingView.
+    SnapperShot väljer inte aktien automatiskt.
+    Programmet öppnar bara Symbol Search.
+    Användaren väljer sedan själv rätt instrument i TradingView.
     """
 
     SEARCH_DELAY = 0.30
@@ -22,15 +23,13 @@ class TradingViewSearch:
 
     def prepare(self) -> bool:
         """
-        Hittar TradingView Desktop och ger fönstret fokus.
+        Ger TradingView fokus.
         """
         return self.window.prepare()
 
     def open_symbol_search(self) -> bool:
         """
-        Öppnar TradingViews officiella Symbol Search.
-
-        Returnerar True om TradingView kunde fokuseras.
+        Öppnar TradingViews Symbol Search med den officiella genvägen "/".
         """
 
         if not self.prepare():
@@ -41,3 +40,14 @@ class TradingViewSearch:
         time.sleep(self.SEARCH_DELAY)
 
         return True
+
+    #
+    # Bakåtkompatibel metod.
+    #
+    def search(self, ticker: str) -> bool:
+        _ = ticker
+        return self.open_symbol_search()
+
+    def search_and_select_first(self, ticker: str) -> bool:
+        _ = ticker
+        return self.open_symbol_search()

@@ -6,7 +6,7 @@ from pathlib import Path
 
 class StorageService:
     """
-    Hanterar alla sökvägar som SnapperShot använder.
+    Hanterar alla mappar och sökvägar som SnapperShot använder.
     """
 
     ROOT_FOLDER = Path.home() / "Desktop" / "Screenshots to GPT"
@@ -16,10 +16,6 @@ class StorageService:
 
     @staticmethod
     def sanitize(name: str) -> str:
-        """
-        Gör ett filnamn säkert för Windows.
-        """
-
         invalid = '<>:"/\\|?*'
 
         for char in invalid:
@@ -28,10 +24,6 @@ class StorageService:
         return name.strip()
 
     def create_capture_folder(self, company: str) -> Path:
-        """
-        Skapar en unik mapp för varje capture.
-        """
-
         company = self.sanitize(company)
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -47,13 +39,11 @@ class StorageService:
         company: str,
         timeframe: str,
     ) -> Path:
-
         folder = self.create_capture_folder(company)
 
         return folder / f"{timeframe}.png"
 
     def zip_path(self, company: str) -> Path:
-
         company = self.sanitize(company)
 
         return self.ROOT_FOLDER / f"{company}.zip"

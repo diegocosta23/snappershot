@@ -54,8 +54,10 @@ class SnapshotEngine:
         if image is None:
             raise RuntimeError("Kunde inte ta screenshot av TradingView-fönstret.")
 
-        if not image.save(str(path)):
-            raise RuntimeError(f"Kunde inte spara screenshoten: {path}")
+        try:
+            image.save(path)
+        except Exception as exc:
+            raise RuntimeError(f"Kunde inte spara screenshoten: {path}") from exc
 
         return path
 

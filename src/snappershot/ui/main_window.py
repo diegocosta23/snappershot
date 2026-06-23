@@ -145,30 +145,6 @@ class MainWindow(QMainWindow):
         timeframe_layout.addWidget(timeframe_note)
         timeframe_layout.addLayout(timeframe_row)
 
-        integration_card = self._create_card()
-        integration_layout = QVBoxLayout(integration_card)
-        integration_layout.setContentsMargins(18, 18, 18, 18)
-        integration_layout.setSpacing(10)
-
-        integration_title = QLabel("Plats för framtida integrationer")
-        integration_title.setObjectName("sectionLabel")
-
-        integration_note = QLabel("Här finns utrymme för Finnhub, Yahoo Finance, nyheter och andra datakällor senare.")
-        integration_note.setObjectName("subtitleLabel")
-        integration_note.setWordWrap(True)
-
-        integration_row = QHBoxLayout()
-        integration_row.setSpacing(10)
-
-        integration_row.addWidget(self._integration_card("TradingView", "Desktop automation"))
-        integration_row.addWidget(self._integration_card("Finnhub", "Framtida API-källa"))
-        integration_row.addWidget(self._integration_card("Yahoo Finance", "Framtida API-källa"))
-        integration_row.addWidget(self._integration_card("Nyheter", "Framtida nyhetsflöde"))
-
-        integration_layout.addWidget(integration_title)
-        integration_layout.addWidget(integration_note)
-        integration_layout.addLayout(integration_row)
-
         action_row = QHBoxLayout()
         action_row.setSpacing(12)
 
@@ -265,14 +241,38 @@ class MainWindow(QMainWindow):
         log_layout.addWidget(log_title)
         log_layout.addWidget(self.log_box)
 
+        integration_card = self._create_card()
+        integration_layout = QVBoxLayout(integration_card)
+        integration_layout.setContentsMargins(18, 18, 18, 18)
+        integration_layout.setSpacing(10)
+
+        integration_title = QLabel("Plats för framtida integrationer")
+        integration_title.setObjectName("sectionLabel")
+
+        integration_note = QLabel("Här finns utrymme för Finnhub, Yahoo Finance, nyheter och andra datakällor senare.")
+        integration_note.setObjectName("subtitleLabel")
+        integration_note.setWordWrap(True)
+
+        integration_row = QHBoxLayout()
+        integration_row.setSpacing(10)
+
+        integration_row.addWidget(self._integration_card("TradingView", "Desktop automation"))
+        integration_row.addWidget(self._integration_card("Finnhub", "Framtida API-källa"))
+        integration_row.addWidget(self._integration_card("Yahoo Finance", "Framtida API-källa"))
+        integration_row.addWidget(self._integration_card("Nyheter", "Framtida nyhetsflöde"))
+
+        integration_layout.addWidget(integration_title)
+        integration_layout.addWidget(integration_note)
+        integration_layout.addLayout(integration_row)
+
         content_layout.addWidget(header_card)
         content_layout.addWidget(search_card)
         content_layout.addWidget(timeframe_card)
-        content_layout.addWidget(integration_card)
         content_layout.addLayout(action_row)
         content_layout.addWidget(progress_card)
         content_layout.addWidget(result_card)
         content_layout.addWidget(log_card, 1)
+        content_layout.addWidget(integration_card)
 
         root_layout.addWidget(scroll)
 

@@ -49,13 +49,11 @@ class CapturePipeline:
                 company_name=company.name,
             )
 
-        print()
-        print("=" * 60)
-        print("SELECT THE COMPANY INSIDE TRADINGVIEW")
-        print("WHEN THE CHART HAS LOADED PRESS ENTER HERE")
-        print("=" * 60)
-
-        self.engine.wait_for_symbol_selection()
+        if not self.engine.wait_for_symbol_selection():
+            return CaptureResult.failed(
+                "Capture cancelled.",
+                company_name=company.name,
+            )
 
         selected_timeframes = timeframes or self.DEFAULT_TIMEFRAMES
         output_folder = self.storage_service.create_capture_folder(company.name)

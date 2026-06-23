@@ -12,48 +12,43 @@ class TimeframeController:
 
     OPEN_DELAY = 0.20
     LOAD_DELAY = 1.25
+    MAX_RETRIES = 2
+
+    VALID_TIMEFRAMES = {
+        "1W",
+        "1D",
+        "4H",
+        "45M",
+    }
 
     def set(self, timeframe: str) -> bool:
         """
-        Byter timeframe via TradingViews snabbkommando.
-
-        Exempel:
-            1W
-            1D
-            4H
-            45M
+        Byter timeframe i TradingView.
         """
 
-        try:
-            #
-            # Öppna TradingViews timeframe-dialog.
-            #
-            pyautogui.press(",")
+        timeframe = timeframe.upper()
 
-            time.sleep(self.OPEN_DELAY)
+        if timeframe not in self.VALID_TIMEFRAMES:
+            raise ValueError(f"Ogiltigt timeframe: {timeframe}")
 
-            #
-            # Rensa eventuell tidigare text.
-            #
-            pyautogui.hotkey("ctrl", "a")
-            pyautogui.press("backspace")
+        for _ in range(self.MAX_RETRIES):
+            try:
+                pyautogui.press(",")
+                time.sleep(self.OPEN_DELAY)
 
-            #
-            # Skriv timeframe.
-            #
-            pyautogui.write(timeframe, interval=0.02)
+                pyautogui.hotkey("ctrl", "a")
+                pyautogui.press("backspace")
 
-            pyautogui.press("enter")
+                pyautogui.write(timeframe, interval=0.02)
+                pyautogui.press("enter")
 
-            #
-            # Vänta på att grafen laddar.
-            #
-            time.sleep(self.LOAD_DELAY)
+                time.sleep(self.LOAD_DELAY)
+                return True
 
-            return True
+            except Exception:
+                time.sleep(0.3)
 
-        except Exception:
-            return False
+        return False
 
     def cycle(self, timeframes: list[str]) -> bool:
         """
@@ -61,7 +56,6 @@ class TimeframeController:
         """
 
         for timeframe in timeframes:
-
             if not self.set(timeframe):
                 return False
 

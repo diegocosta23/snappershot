@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtWidgets import QMessageBox
+
 from .search import TradingViewSearch
 from .snapshot import SnapshotEngine
 from .timeframe import TimeframeController
@@ -52,11 +54,31 @@ class ScreenshotEngine:
         """
         return self.open_symbol_search()
 
-    def wait_for_symbol_selection(self) -> None:
+    def wait_for_symbol_selection(self) -> bool:
         """
-        Enkel paus för manuell symbolvalsbekräftelse i terminalflöde.
+        Visar en dialog som låter användaren fortsätta när symbolen är vald.
         """
-        input("Välj aktie i TradingView och tryck Enter här när grafen har laddat klart...")
+        dialog = QMessageBox()
+        dialog.setWindowTitle("SnapperShot")
+        dialog.setIcon(QMessageBox.Icon.Information)
+        dialog.setText("Välj aktie i TradingView.")
+        dialog.setInformativeText("När grafen har laddat klart klickar du Fortsätt.")
+
+        continue_button = dialog.addButton(
+            "Fortsätt",
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        cancel_button = dialog.addButton(
+            "Avbryt",
+            QMessageBox.ButtonRole.RejectRole,
+        )
+
+        dialog.setDefaultButton(continue_button)
+        dialog.setEscapeButton(cancel_button)
+
+        dialog.exec()
+
+        return dialog.clickedButton() == continue_button
 
     def change_timeframe(self, timeframe: str) -> bool:
         """

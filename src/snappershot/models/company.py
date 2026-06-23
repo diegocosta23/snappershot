@@ -1,13 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass(slots=True)
-class Company:
+class CaptureResult:
     """
-    Representerar ett företag.
+    Resultatet av en komplett capture-session.
     """
 
-    name: str
-    ticker: str
+    success: bool
+    company_name: str
+
+    zip_path: Path | None = None
+
+    screenshots: list[Path] = field(default_factory=list)
+
+    message: str = ""
+
+    @property
+    def screenshot_count(self) -> int:
+        return len(self.screenshots)
