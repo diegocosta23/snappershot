@@ -1,0 +1,12 @@
+tradeview/
+
+__pycache__/
+*.pyc
+.venv/
+.vscode/
+
+screenshots/
+captures/
+output/
+
+*.zip
