@@ -100,7 +100,9 @@ class MainWindow(QMainWindow):
 
         self.company_input = QLineEdit()
         self.company_input.setPlaceholderText("Skriv exempelvis Investor...")
-        self.company_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.company_input.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
 
         self.results_hint = QLabel("Skriv minst två tecken för att se träffar.")
         self.results_hint.setObjectName("subtitleLabel")
@@ -124,7 +126,9 @@ class MainWindow(QMainWindow):
         timeframe_title = QLabel("Tidsramar")
         timeframe_title.setObjectName("sectionLabel")
 
-        timeframe_note = QLabel("Välj vilka snapshots som ska tas. Standard är alla fyra.")
+        timeframe_note = QLabel(
+            "Välj vilka snapshots som ska tas. Standard är alla fyra."
+        )
         timeframe_note.setObjectName("subtitleLabel")
 
         timeframe_row = QHBoxLayout()
@@ -135,7 +139,12 @@ class MainWindow(QMainWindow):
         self.timeframe_4h = QCheckBox("4H")
         self.timeframe_45m = QCheckBox("45M")
 
-        for checkbox in (self.timeframe_1w, self.timeframe_1d, self.timeframe_4h, self.timeframe_45m):
+        for checkbox in (
+            self.timeframe_1w,
+            self.timeframe_1d,
+            self.timeframe_4h,
+            self.timeframe_45m,
+        ):
             checkbox.setChecked(True)
             timeframe_row.addWidget(checkbox)
 
@@ -153,7 +162,9 @@ class MainWindow(QMainWindow):
         self.capture_button.setMinimumHeight(48)
         self.capture_button.clicked.connect(self.capture_requested.emit)
 
-        self.capture_note = QLabel("Programmet tar 1W, 1D, 4H och 45M när allt är klart.")
+        self.capture_note = QLabel(
+            "Programmet tar 1W, 1D, 4H och 45M när allt är klart."
+        )
         self.capture_note.setObjectName("subtitleLabel")
         self.capture_note.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
@@ -249,17 +260,27 @@ class MainWindow(QMainWindow):
         integration_title = QLabel("Plats för framtida integrationer")
         integration_title.setObjectName("sectionLabel")
 
-        integration_note = QLabel("Här finns utrymme för Finnhub, Yahoo Finance, nyheter och andra datakällor senare.")
+        integration_note = QLabel(
+            "Här finns utrymme för Finnhub, Yahoo Finance, nyheter och andra datakällor senare."
+        )
         integration_note.setObjectName("subtitleLabel")
         integration_note.setWordWrap(True)
 
         integration_row = QHBoxLayout()
         integration_row.setSpacing(10)
 
-        integration_row.addWidget(self._integration_card("TradingView", "Desktop automation"))
-        integration_row.addWidget(self._integration_card("Finnhub", "Framtida API-källa"))
-        integration_row.addWidget(self._integration_card("Yahoo Finance", "Framtida API-källa"))
-        integration_row.addWidget(self._integration_card("Nyheter", "Framtida nyhetsflöde"))
+        integration_row.addWidget(
+            self._integration_card("TradingView", "Desktop automation")
+        )
+        integration_row.addWidget(
+            self._integration_card("Finnhub", "Framtida API-källa")
+        )
+        integration_row.addWidget(
+            self._integration_card("Yahoo Finance", "Framtida API-källa")
+        )
+        integration_row.addWidget(
+            self._integration_card("Nyheter", "Framtida nyhetsflöde")
+        )
 
         integration_layout.addWidget(integration_title)
         integration_layout.addWidget(integration_note)
@@ -333,7 +354,9 @@ class MainWindow(QMainWindow):
 
         if not results:
             self.company_results.hide()
-            self.results_hint.setText("Inga träffar ännu. Skriv ett företagsnamn för att söka.")
+            self.results_hint.setText(
+                "Inga träffar ännu. Skriv ett företagsnamn för att söka."
+            )
             self.results_hint.show()
             return
 
@@ -372,7 +395,12 @@ class MainWindow(QMainWindow):
         self.capture_button.setEnabled(not busy)
         self.company_input.setEnabled(not busy)
         self.company_results.setEnabled(not busy)
-        for checkbox in (self.timeframe_1w, self.timeframe_1d, self.timeframe_4h, self.timeframe_45m):
+        for checkbox in (
+            self.timeframe_1w,
+            self.timeframe_1d,
+            self.timeframe_4h,
+            self.timeframe_45m,
+        ):
             checkbox.setEnabled(not busy)
 
         if busy:
@@ -402,7 +430,9 @@ class MainWindow(QMainWindow):
     def append_log(self, message: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.log_box.append(f"{timestamp}  {message}")
-        self.log_box.verticalScrollBar().setValue(self.log_box.verticalScrollBar().maximum())
+        self.log_box.verticalScrollBar().setValue(
+            self.log_box.verticalScrollBar().maximum()
+        )
 
     def clear_log(self) -> None:
         self.log_box.clear()

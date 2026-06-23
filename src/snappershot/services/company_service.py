@@ -35,11 +35,7 @@ class CompanyService:
     @staticmethod
     def _normalize(text: str) -> str:
 
-        return "".join(
-            char
-            for char in text.lower()
-            if char.isalnum()
-        )
+        return "".join(char for char in text.lower() if char.isalnum())
 
     def search(self, text: str) -> list[Company]:
         """
