@@ -15,6 +15,7 @@ import win32process
 from pywinauto import Desktop
 
 from ..models.step_result import StepOutcome
+
 log = logging.getLogger(__name__)
 
 # =============================================================================
