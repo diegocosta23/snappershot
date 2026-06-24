@@ -14,8 +14,7 @@ import win32gui
 import win32process
 from pywinauto import Desktop
 
-from snappershot.models.step_result import StepOutcome
-
+from ..models.step_result import StepOutcome
 log = logging.getLogger(__name__)
 
 # =============================================================================
@@ -306,7 +305,9 @@ class WindowManager:
                 if self._is_tradingview_window(hwnd):
                     candidates.append(hwnd)
             except Exception as exc:
-                log.debug("EnumWindows callback misslyckades för hwnd=%s: %s", hwnd, exc)
+                log.debug(
+                    "EnumWindows callback misslyckades för hwnd=%s: %s", hwnd, exc
+                )
             return True
 
         win32gui.EnumWindows(callback, None)
@@ -329,7 +330,14 @@ class WindowManager:
 
         patterns = [
             r"C:\Program Files\WindowsApps\TradingView.Desktop_*_x64_*\TradingView.exe",
-            str(Path.home() / "AppData" / "Local" / "Microsoft" / "WindowsApps" / "TradingView.exe"),
+            str(
+                Path.home()
+                / "AppData"
+                / "Local"
+                / "Microsoft"
+                / "WindowsApps"
+                / "TradingView.exe"
+            ),
         ]
 
         for pattern in patterns:
@@ -511,7 +519,9 @@ class WindowManager:
 
                 if current_tid and target_tid and current_tid != target_tid:
                     try:
-                        attached = bool(user32.AttachThreadInput(current_tid, target_tid, True))
+                        attached = bool(
+                            user32.AttachThreadInput(current_tid, target_tid, True)
+                        )
                     except Exception:
                         attached = False
 
@@ -554,7 +564,12 @@ class WindowManager:
 
             finally:
                 try:
-                    if attached and current_tid and target_tid and current_tid != target_tid:
+                    if (
+                        attached
+                        and current_tid
+                        and target_tid
+                        and current_tid != target_tid
+                    ):
                         user32.AttachThreadInput(current_tid, target_tid, False)
                 except Exception:
                     pass

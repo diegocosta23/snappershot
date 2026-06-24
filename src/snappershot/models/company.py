@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 
 
 @dataclass(slots=True)
-class CaptureResult:
+class Company:
     """
-    Resultatet av en komplett capture-session.
+    Representerar ett företag som kan öppnas i TradingView.
     """
 
-    success: bool
-    company_name: str
-
-    zip_path: Path | None = None
-
-    screenshots: list[Path] = field(default_factory=list)
-
-    message: str = ""
+    name: str
+    ticker: str
 
     @property
-    def screenshot_count(self) -> int:
-        return len(self.screenshots)
+    def display_name(self) -> str:
+        return f"{self.name} ({self.ticker})"
+
+    def __str__(self) -> str:
+        return self.display_name

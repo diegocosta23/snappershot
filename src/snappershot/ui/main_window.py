@@ -21,6 +21,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..controller.main_controller import MainController
+
 
 class MainWindow(QMainWindow):
     capture_requested = Signal()
@@ -35,6 +37,7 @@ class MainWindow(QMainWindow):
 
         self._zip_filename = ""
         self._zip_path = ""
+        self.controller: MainController | None = None
 
         self.setObjectName("mainWindow")
         self.setWindowTitle("SnapperShot")
@@ -43,6 +46,8 @@ class MainWindow(QMainWindow):
 
         self._build_ui()
         self._connect_signals()
+
+        self.controller = MainController(self)
 
         self.set_company_results([])
         self.set_result(None, None)
@@ -78,7 +83,7 @@ class MainWindow(QMainWindow):
         title.setObjectName("titleLabel")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        subtitle = QLabel("TradingView Desktop → snapshots → ZIP → ChatGPT")
+        subtitle = QLabel("TradingView Desktop → snapshots → ZIP")
         subtitle.setObjectName("subtitleLabel")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -101,7 +106,8 @@ class MainWindow(QMainWindow):
         self.company_input = QLineEdit()
         self.company_input.setPlaceholderText("Skriv exempelvis Investor...")
         self.company_input.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
         )
 
         self.results_hint = QLabel("Skriv minst två tecken för att se träffar.")
@@ -247,44 +253,10 @@ class MainWindow(QMainWindow):
 
         self.log_box = QTextEdit()
         self.log_box.setReadOnly(True)
-        self.log_box.setMinimumHeight(200)
+        self.log_box.setMinimumHeight(220)
 
         log_layout.addWidget(log_title)
         log_layout.addWidget(self.log_box)
-
-        integration_card = self._create_card()
-        integration_layout = QVBoxLayout(integration_card)
-        integration_layout.setContentsMargins(18, 18, 18, 18)
-        integration_layout.setSpacing(10)
-
-        integration_title = QLabel("Plats för framtida integrationer")
-        integration_title.setObjectName("sectionLabel")
-
-        integration_note = QLabel(
-            "Här finns utrymme för Finnhub, Yahoo Finance, nyheter och andra datakällor senare."
-        )
-        integration_note.setObjectName("subtitleLabel")
-        integration_note.setWordWrap(True)
-
-        integration_row = QHBoxLayout()
-        integration_row.setSpacing(10)
-
-        integration_row.addWidget(
-            self._integration_card("TradingView", "Desktop automation")
-        )
-        integration_row.addWidget(
-            self._integration_card("Finnhub", "Framtida API-källa")
-        )
-        integration_row.addWidget(
-            self._integration_card("Yahoo Finance", "Framtida API-källa")
-        )
-        integration_row.addWidget(
-            self._integration_card("Nyheter", "Framtida nyhetsflöde")
-        )
-
-        integration_layout.addWidget(integration_title)
-        integration_layout.addWidget(integration_note)
-        integration_layout.addLayout(integration_row)
 
         content_layout.addWidget(header_card)
         content_layout.addWidget(search_card)
@@ -293,35 +265,12 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(progress_card)
         content_layout.addWidget(result_card)
         content_layout.addWidget(log_card, 1)
-        content_layout.addWidget(integration_card)
 
         root_layout.addWidget(scroll)
 
     def _create_card(self) -> QFrame:
         card = QFrame()
         card.setProperty("card", True)
-        return card
-
-    def _integration_card(self, title: str, subtitle: str) -> QFrame:
-        card = QFrame()
-        card.setProperty("card", True)
-        card.setMinimumWidth(180)
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(4)
-
-        title_label = QLabel(title)
-        title_label.setObjectName("sectionLabel")
-
-        subtitle_label = QLabel(subtitle)
-        subtitle_label.setObjectName("subtitleLabel")
-        subtitle_label.setWordWrap(True)
-
-        layout.addWidget(title_label)
-        layout.addWidget(subtitle_label)
-
         return card
 
     def _connect_signals(self) -> None:
@@ -395,6 +344,7 @@ class MainWindow(QMainWindow):
         self.capture_button.setEnabled(not busy)
         self.company_input.setEnabled(not busy)
         self.company_results.setEnabled(not busy)
+
         for checkbox in (
             self.timeframe_1w,
             self.timeframe_1d,
@@ -410,6 +360,9 @@ class MainWindow(QMainWindow):
             self.capture_button.setText("📸 Capture")
             self.progress_bar.setRange(0, 100)
             self.progress_bar.setValue(0)
+
+    def set_capture_button_text(self, text: str) -> None:
+        self.capture_button.setText(text)
 
     def set_progress(self, value: int) -> None:
         self.progress_bar.setRange(0, 100)

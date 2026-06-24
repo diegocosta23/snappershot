@@ -7,8 +7,8 @@ from typing import Iterable
 import pyautogui
 import win32gui
 
-from snappershot.models.step_result import StepOutcome
-from snappershot.tradingview.window_manager import WindowManager
+from ..models.step_result import StepOutcome
+from .window_manager import WindowManager
 
 log = logging.getLogger(__name__)
 

@@ -10,7 +10,6 @@ from PySide6.QtWidgets import QApplication
 
 from ..controller.capture_pipeline import CapturePipeline
 from ..models.capture_result import CaptureResult
-from ..services.company_service import CompanyService
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +81,9 @@ class MainController:
     # Safe view helpers
     # -------------------------------------------------------------------------
 
-    def _call_view(self, method_name: str, *args: Any, default: Any = None, **kwargs: Any) -> Any:
+    def _call_view(
+        self, method_name: str, *args: Any, default: Any = None, **kwargs: Any
+    ) -> Any:
         if self.view is None:
             return default
 

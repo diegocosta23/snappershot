@@ -6,8 +6,8 @@ import time
 import pyautogui
 import win32gui
 
-from snappershot.models.step_result import StepOutcome
-from snappershot.tradingview.window_manager import WindowManager
+from ..models.step_result import StepOutcome
+from .window_manager import WindowManager
 
 log = logging.getLogger(__name__)
 
@@ -142,9 +142,7 @@ class TradingViewSearch:
             time.sleep(self.SEARCH_DELAY_SECONDS)
 
             if not self._is_expected_foreground():
-                log.warning(
-                    "TradingView tappade fokus efter öppning av Symbol Search."
-                )
+                log.warning("TradingView tappade fokus efter öppning av Symbol Search.")
 
                 if attempt < self.MAX_RETRIES:
                     time.sleep(self.RETRY_DELAY_SECONDS)

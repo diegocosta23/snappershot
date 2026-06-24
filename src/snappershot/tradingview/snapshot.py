@@ -6,8 +6,8 @@ from pathlib import Path
 
 from PIL import Image, ImageGrab, ImageStat
 
-from snappershot.models.step_result import StepOutcome
-from snappershot.tradingview.window_manager import WindowManager
+from ..models.step_result import StepOutcome
+from .window_manager import WindowManager
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +81,9 @@ class SnapshotEngine:
         try:
             size = path.stat().st_size
         except Exception as exc:
-            return StepOutcome.fail(f"Kunde inte läsa filstorlek för {path.name}: {exc}")
+            return StepOutcome.fail(
+                f"Kunde inte läsa filstorlek för {path.name}: {exc}"
+            )
 
         if size < MIN_FILE_SIZE_BYTES:
             return StepOutcome.fail(
@@ -89,9 +91,7 @@ class SnapshotEngine:
             )
 
         if not self._is_nonempty_image(path):
-            return StepOutcome.fail(
-                f"Bilden verkar vara tom eller svart: {path.name}."
-            )
+            return StepOutcome.fail(f"Bilden verkar vara tom eller svart: {path.name}.")
 
         return StepOutcome.success(f"PNG verifierad: {path.name}", data=path)
 
@@ -107,15 +107,11 @@ class SnapshotEngine:
 
         rect = self.window.get_rect()
         if rect is None:
-            return StepOutcome.fail(
-                "Kunde inte hämta fönstrets koordinater."
-            )
+            return StepOutcome.fail("Kunde inte hämta fönstrets koordinater.")
 
         left, top, right, bottom = rect
         if right <= left or bottom <= top:
-            return StepOutcome.fail(
-                "TradingView-fönstrets koordinater är ogiltiga."
-            )
+            return StepOutcome.fail("TradingView-fönstrets koordinater är ogiltiga.")
 
         time.sleep(POST_FOCUS_SLEEP_SECONDS)
 
@@ -183,7 +179,9 @@ class SnapshotEngine:
             f"Kunde inte ta screenshot{label_text} efter {MAX_RETRIES} försök."
         )
 
-    def capture_window(self, output_path: str | Path, window: object | None = None) -> StepOutcome:
+    def capture_window(
+        self, output_path: str | Path, window: object | None = None
+    ) -> StepOutcome:
         """
         Bakåtkompatibel metod.
 
