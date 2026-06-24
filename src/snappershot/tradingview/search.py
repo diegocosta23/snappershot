@@ -62,18 +62,6 @@ class TradingViewSearch:
             log.warning("Kunde inte skicka '/': %s", exc)
             return StepOutcome.fail(f"Kunde inte skicka '/' : {exc}")
 
-    def _open_fallback_shortcut(self) -> StepOutcome:
-        """
-        Fallback om '/' inte fungerar.
-        """
-        try:
-            pyautogui.hotkey("ctrl", "k")
-            log.debug("TradingViewSearch: skickade Ctrl+K som fallback")
-            return StepOutcome.success("Fallback-kortkommando skickat.")
-        except Exception as exc:
-            log.warning("Kunde inte skicka Ctrl+K: %s", exc)
-            return StepOutcome.fail(f"Kunde inte skicka Ctrl+K: {exc}")
-
     def open_symbol_search(self) -> StepOutcome:
         """
         Öppnar TradingViews Symbol Search.
@@ -129,20 +117,17 @@ class TradingViewSearch:
             if not shortcut.ok:
                 if attempt < self.MAX_RETRIES:
                     time.sleep(self.RETRY_DELAY_SECONDS)
-                    fallback = self._open_fallback_shortcut()
-                    if not fallback.ok:
-                        return StepOutcome.fail(
-                            f"Kunde inte öppna Symbol Search: {fallback.message}"
-                        )
-                else:
-                    return StepOutcome.fail(
-                        f"Kunde inte öppna Symbol Search: {shortcut.message}"
-                    )
+                    continue
+                return StepOutcome.fail(
+                    f"Kunde inte öppna Symbol Search: {shortcut.message}"
+                )
 
             time.sleep(self.SEARCH_DELAY_SECONDS)
 
             if not self._is_expected_foreground():
-                log.warning("TradingView tappade fokus efter öppning av Symbol Search.")
+                log.warning(
+                    "TradingView tappade fokus efter öppning av Symbol Search."
+                )
 
                 if attempt < self.MAX_RETRIES:
                     time.sleep(self.RETRY_DELAY_SECONDS)
@@ -162,23 +147,10 @@ class TradingViewSearch:
             f"Kunde inte öppna Symbol Search efter {self.MAX_RETRIES} försök."
         )
 
-    #
-    # Bakåtkompatibla metoder
-    #
     def search(self, ticker: str) -> StepOutcome:
-        """
-        Bakåtkompatibel metod.
-
-        V1 ignorerar ticker och öppnar bara Symbol Search.
-        """
         _ = ticker
         return self.open_symbol_search()
 
     def search_and_select_first(self, ticker: str) -> StepOutcome:
-        """
-        Bakåtkompatibel metod.
-
-        V1 ignorerar ticker och öppnar bara Symbol Search.
-        """
         _ = ticker
         return self.open_symbol_search()
