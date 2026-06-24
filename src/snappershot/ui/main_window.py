@@ -14,8 +14,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QProgressBar,
     QPushButton,
-    QScrollArea,
-    QSizePolicy,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -41,8 +39,8 @@ class MainWindow(QMainWindow):
 
         self.setObjectName("mainWindow")
         self.setWindowTitle("SnapperShot")
-        self.resize(1220, 860)
-        self.setMinimumSize(1100, 760)
+        self.resize(1020, 720)
+        self.setMinimumSize(920, 640)
 
         self._build_ui()
         self._connect_signals()
@@ -59,25 +57,14 @@ class MainWindow(QMainWindow):
         central = QWidget(self)
         self.setCentralWidget(central)
 
-        root_layout = QVBoxLayout(central)
-        root_layout.setContentsMargins(22, 22, 22, 22)
-        root_layout.setSpacing(16)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(14, 14, 14, 14)
+        root.setSpacing(10)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-
-        content = QWidget()
-        content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(16)
-
-        scroll.setWidget(content)
-
-        header_card = self._create_card()
-        header_layout = QVBoxLayout(header_card)
-        header_layout.setContentsMargins(18, 18, 18, 18)
-        header_layout.setSpacing(6)
+        header = self._card()
+        header_layout = QVBoxLayout(header)
+        header_layout.setContentsMargins(14, 12, 14, 12)
+        header_layout.setSpacing(4)
 
         title = QLabel("SnapperShot")
         title.setObjectName("titleLabel")
@@ -95,27 +82,29 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(subtitle)
         header_layout.addWidget(self.connection_label)
 
-        search_card = self._create_card()
-        search_layout = QVBoxLayout(search_card)
-        search_layout.setContentsMargins(18, 18, 18, 18)
-        search_layout.setSpacing(12)
+        body = QHBoxLayout()
+        body.setSpacing(10)
+
+        left = QVBoxLayout()
+        left.setSpacing(10)
+
+        search = self._card()
+        search_layout = QVBoxLayout(search)
+        search_layout.setContentsMargins(14, 12, 14, 12)
+        search_layout.setSpacing(8)
 
         search_title = QLabel("Sök företag")
         search_title.setObjectName("sectionLabel")
 
         self.company_input = QLineEdit()
         self.company_input.setPlaceholderText("Skriv exempelvis Investor...")
-        self.company_input.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
-        )
 
         self.results_hint = QLabel("Skriv minst två tecken för att se träffar.")
         self.results_hint.setObjectName("subtitleLabel")
 
         self.company_results = QListWidget()
         self.company_results.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-        self.company_results.setMinimumHeight(170)
+        self.company_results.setMinimumHeight(110)
         self.company_results.itemClicked.connect(self._handle_result_clicked)
         self.company_results.hide()
 
@@ -124,21 +113,19 @@ class MainWindow(QMainWindow):
         search_layout.addWidget(self.results_hint)
         search_layout.addWidget(self.company_results)
 
-        timeframe_card = self._create_card()
-        timeframe_layout = QVBoxLayout(timeframe_card)
-        timeframe_layout.setContentsMargins(18, 18, 18, 18)
-        timeframe_layout.setSpacing(10)
+        timeframe = self._card()
+        timeframe_layout = QVBoxLayout(timeframe)
+        timeframe_layout.setContentsMargins(14, 12, 14, 12)
+        timeframe_layout.setSpacing(8)
 
         timeframe_title = QLabel("Tidsramar")
         timeframe_title.setObjectName("sectionLabel")
 
-        timeframe_note = QLabel(
-            "Välj vilka snapshots som ska tas. Standard är alla fyra."
-        )
+        timeframe_note = QLabel("Välj vilka snapshots som ska tas.")
         timeframe_note.setObjectName("subtitleLabel")
 
-        timeframe_row = QHBoxLayout()
-        timeframe_row.setSpacing(14)
+        row = QHBoxLayout()
+        row.setSpacing(10)
 
         self.timeframe_1w = QCheckBox("1W")
         self.timeframe_1d = QCheckBox("1D")
@@ -152,41 +139,49 @@ class MainWindow(QMainWindow):
             self.timeframe_45m,
         ):
             checkbox.setChecked(True)
-            timeframe_row.addWidget(checkbox)
+            row.addWidget(checkbox)
 
-        timeframe_row.addStretch(1)
+        row.addStretch(1)
 
         timeframe_layout.addWidget(timeframe_title)
         timeframe_layout.addWidget(timeframe_note)
-        timeframe_layout.addLayout(timeframe_row)
+        timeframe_layout.addLayout(row)
 
         action_row = QHBoxLayout()
-        action_row.setSpacing(12)
+        action_row.setSpacing(10)
 
         self.capture_button = QPushButton("📸 Capture")
         self.capture_button.setObjectName("primaryAction")
-        self.capture_button.setMinimumHeight(48)
+        self.capture_button.setMinimumHeight(42)
         self.capture_button.clicked.connect(self.capture_requested.emit)
 
         self.capture_note = QLabel(
             "Programmet tar 1W, 1D, 4H och 45M när allt är klart."
         )
         self.capture_note.setObjectName("subtitleLabel")
-        self.capture_note.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self.capture_note.setWordWrap(True)
 
         action_row.addWidget(self.capture_button, 0)
         action_row.addWidget(self.capture_note, 1)
 
-        progress_card = self._create_card()
-        progress_layout = QVBoxLayout(progress_card)
-        progress_layout.setContentsMargins(18, 18, 18, 18)
-        progress_layout.setSpacing(10)
+        left.addWidget(search)
+        left.addWidget(timeframe)
+        left.addLayout(action_row)
+        left.addStretch(1)
 
-        progress_title = QLabel("Status")
-        progress_title.setObjectName("sectionLabel")
+        right = QVBoxLayout()
+        right.setSpacing(10)
 
-        progress_row = QHBoxLayout()
-        progress_row.setSpacing(12)
+        status = self._card()
+        status_layout = QVBoxLayout(status)
+        status_layout.setContentsMargins(14, 12, 14, 12)
+        status_layout.setSpacing(6)
+
+        status_title = QLabel("Status")
+        status_title.setObjectName("sectionLabel")
+
+        status_row = QHBoxLayout()
+        status_row.setSpacing(10)
 
         self.status_value = QLabel("Redo")
         self.status_value.setObjectName("statusValue")
@@ -195,16 +190,16 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
 
-        progress_row.addWidget(self.status_value, 0)
-        progress_row.addWidget(self.progress_bar, 1)
+        status_row.addWidget(self.status_value, 0)
+        status_row.addWidget(self.progress_bar, 1)
 
-        progress_layout.addWidget(progress_title)
-        progress_layout.addLayout(progress_row)
+        status_layout.addWidget(status_title)
+        status_layout.addLayout(status_row)
 
-        result_card = self._create_card()
-        result_layout = QVBoxLayout(result_card)
-        result_layout.setContentsMargins(18, 18, 18, 18)
-        result_layout.setSpacing(12)
+        result = self._card()
+        result_layout = QVBoxLayout(result)
+        result_layout.setContentsMargins(14, 12, 14, 12)
+        result_layout.setSpacing(8)
 
         result_title = QLabel("Resultat")
         result_title.setObjectName("sectionLabel")
@@ -217,8 +212,8 @@ class MainWindow(QMainWindow):
         self.result_path_value.setObjectName("resultPathValue")
         self.result_path_value.setWordWrap(True)
 
-        result_buttons = QHBoxLayout()
-        result_buttons.setSpacing(10)
+        buttons = QHBoxLayout()
+        buttons.setSpacing(8)
 
         self.copy_zip_button = QPushButton("📋 Kopiera ZIP")
         self.copy_zip_button.setObjectName("successAction")
@@ -234,41 +229,42 @@ class MainWindow(QMainWindow):
         self.clear_button.setEnabled(False)
         self.clear_button.clicked.connect(self.clear_requested.emit)
 
-        result_buttons.addWidget(self.copy_zip_button)
-        result_buttons.addWidget(self.open_folder_button)
-        result_buttons.addWidget(self.clear_button)
+        buttons.addWidget(self.copy_zip_button)
+        buttons.addWidget(self.open_folder_button)
+        buttons.addWidget(self.clear_button)
 
         result_layout.addWidget(result_title)
         result_layout.addWidget(self.result_value)
         result_layout.addWidget(self.result_path_value)
-        result_layout.addLayout(result_buttons)
+        result_layout.addLayout(buttons)
 
-        log_card = self._create_card()
+        log_card = self._card()
         log_layout = QVBoxLayout(log_card)
-        log_layout.setContentsMargins(18, 18, 18, 18)
-        log_layout.setSpacing(10)
+        log_layout.setContentsMargins(14, 12, 14, 12)
+        log_layout.setSpacing(6)
 
         log_title = QLabel("Logg")
         log_title.setObjectName("sectionLabel")
 
         self.log_box = QTextEdit()
         self.log_box.setReadOnly(True)
-        self.log_box.setMinimumHeight(220)
+        self.log_box.setFixedHeight(150)
 
         log_layout.addWidget(log_title)
         log_layout.addWidget(self.log_box)
 
-        content_layout.addWidget(header_card)
-        content_layout.addWidget(search_card)
-        content_layout.addWidget(timeframe_card)
-        content_layout.addLayout(action_row)
-        content_layout.addWidget(progress_card)
-        content_layout.addWidget(result_card)
-        content_layout.addWidget(log_card, 1)
+        right.addWidget(status)
+        right.addWidget(result)
+        right.addWidget(log_card)
+        right.addStretch(1)
 
-        root_layout.addWidget(scroll)
+        body.addLayout(left, 1)
+        body.addLayout(right, 1)
 
-    def _create_card(self) -> QFrame:
+        root.addWidget(header)
+        root.addLayout(body, 1)
+
+    def _card(self) -> QFrame:
         card = QFrame()
         card.setProperty("card", True)
         return card

@@ -227,6 +227,30 @@ class WindowManager:
         except Exception:
             return None
 
+    def get_client_rect(self) -> tuple[int, int, int, int] | None:
+        """
+        Returnerar client area i skärmkoordinater.
+        """
+        hwnd = self.hwnd
+        if hwnd is None:
+            return None
+
+        try:
+            left, top, right, bottom = win32gui.GetClientRect(hwnd)
+
+            if right <= left or bottom <= top:
+                return None
+
+            screen_left, screen_top = win32gui.ClientToScreen(hwnd, (0, 0))
+            screen_right, screen_bottom = win32gui.ClientToScreen(hwnd, (right, bottom))
+
+            if screen_right <= screen_left or screen_bottom <= screen_top:
+                return None
+
+            return screen_left, screen_top, screen_right, screen_bottom
+        except Exception:
+            return None
+
     def _window_area(self, hwnd: int) -> int:
         rect = self._window_rect(hwnd)
         if rect is None:

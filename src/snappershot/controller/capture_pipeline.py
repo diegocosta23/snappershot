@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+import time
 import zipfile
 from pathlib import Path
 from typing import Callable
 
+import pyautogui
+import win32gui
 from PySide6.QtWidgets import QMessageBox
 
 from ..models.capture_result import CaptureResult
@@ -28,8 +31,9 @@ class CapturePipeline:
         2. Förbered TradingView
         3. Öppna Symbol Search
         4. Vänta på att användaren väljer aktie
-        5. Byt timeframe och ta screenshots
-        6. Skapa ZIP
+        5. Stabilisera chart-läget
+        6. Byt timeframe och ta screenshots
+        7. Skapa ZIP
     """
 
     DEFAULT_TIMEFRAMES = [
@@ -85,6 +89,53 @@ class CapturePipeline:
 
         return dialog.clickedButton() == continue_button
 
+    def _stabilize_chart_state(self, company_name: str) -> CaptureResult | None:
+        """
+        Försöker få TradingView tillbaka till chart-läge efter att användaren
+        har valt rätt aktie i Symbol Search.
+        """
+        focus = self.window.focus()
+        if not focus.ok:
+            return CaptureResult.failed(
+                f"Could not focus TradingView before chart stabilization: {focus.message}",
+                company_name=company_name,
+            )
+
+        time.sleep(0.20)
+
+        try:
+            pyautogui.press("escape")
+            time.sleep(0.10)
+            pyautogui.press("escape")
+            time.sleep(0.10)
+        except Exception as exc:
+            return CaptureResult.failed(
+                f"Could not clear TradingView overlays: {exc}",
+                company_name=company_name,
+            )
+
+        hwnd = self.window.hwnd
+        if hwnd is not None:
+            try:
+                client_left, client_top, client_right, client_bottom = (
+                    win32gui.GetClientRect(hwnd)
+                )
+                center_client_x = (client_right - client_left) // 2
+                center_client_y = (client_bottom - client_top) // 2
+
+                center_x, center_y = win32gui.ClientToScreen(
+                    hwnd,
+                    (center_client_x, center_client_y),
+                )
+
+                pyautogui.click(center_x, center_y)
+                time.sleep(0.10)
+                pyautogui.press("escape")
+            except Exception:
+                pass
+
+        return None
+
     def capture_company(
         self,
         company_name: str,
@@ -127,6 +178,10 @@ class CapturePipeline:
                 "Capture cancelled.",
                 company_name=company.name,
             )
+
+        chart_state = self._stabilize_chart_state(company.name)
+        if chart_state is not None:
+            return chart_state
 
         selected_timeframes = list(timeframes or self.DEFAULT_TIMEFRAMES)
         output_folder = self.storage_service.create_capture_folder(company.name)
