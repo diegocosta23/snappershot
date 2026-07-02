@@ -12,7 +12,7 @@ from .window_manager import WindowManager
 
 log = logging.getLogger(__name__)
 
-VALID_TIMEFRAMES: tuple[str, ...] = ("1W", "1D", "4H", "45M")
+VALID_TIMEFRAMES: tuple[str, ...] = ("1W", "1D", "4H", "45")
 
 OPEN_DELAY_SECONDS = 0.45
 LOAD_DELAY_SECONDS = 1.50
@@ -165,7 +165,7 @@ class TimeframeController:
         - 1W
         - 1D
         - 4H
-        - 45M
+        - 45
         """
         tf = timeframe.strip().upper()
 

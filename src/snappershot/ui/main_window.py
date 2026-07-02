@@ -373,7 +373,7 @@ class MainWindow(QMainWindow):
         if self.timeframe_4h.isChecked():
             timeframes.append("4H")
         if self.timeframe_45m.isChecked():
-            timeframes.append("45M")
+            timeframes.append("45")
         return timeframes
 
     def append_log(self, message: str) -> None:
