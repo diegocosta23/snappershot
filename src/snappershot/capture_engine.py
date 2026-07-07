@@ -153,7 +153,9 @@ class CaptureEngine:
         screenshots = screenshots or []
 
         try:
+            log.info("Finnhub -> %s", ticker)
             finnhub_task = asyncio.to_thread(self.finnhub.collect, ticker)
+            log.info("Yahoo -> %s", ticker)
             yfinance_task = asyncio.to_thread(self.yfinance.collect, ticker)
 
             finnhub_data, yfinance_data = await asyncio.gather(

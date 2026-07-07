@@ -31,6 +31,9 @@ class FinnhubClient:
                 params={**(params or {}), "token": self.api_key},
                 timeout=self.timeout,
             )
+            if response.status_code == 403:
+                log.warning("Finnhub %s returned 403 (unsupported market); continuing with fallback data", endpoint)
+                return {}
             if response.status_code >= 400:
                 log.warning("Finnhub %s failed: %s %s", endpoint, response.status_code, response.text[:300])
                 return {}

@@ -1,0 +1,10 @@
+@echo off
+title SnapperShot
+
+cd /d "C:\Users\smeagol\Desktop\snappershot"
+
+call "%~dp0.venv\Scripts\activate.bat"
+
+python main.py
+
+pause

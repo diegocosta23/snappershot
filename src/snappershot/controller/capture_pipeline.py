@@ -66,6 +66,13 @@ class CapturePipeline:
             except Exception:
                 pass
 
+    def _build_zip_inputs(self, screenshots: list[Path], output_folder: Path) -> list[Path]:
+        zip_inputs = list(screenshots)
+        analysis_package_path = output_folder / "analysis_package.json"
+        if analysis_package_path.exists():
+            zip_inputs.append(analysis_package_path)
+        return zip_inputs
+
     def _show_symbol_selection_dialog(self) -> bool:
         """
         Visar dialogen som låter användaren fortsätta när symbolen är vald.
@@ -186,7 +193,9 @@ class CapturePipeline:
 
         capture_engine = CaptureEngine()
         with ThreadPoolExecutor(max_workers=2) as executor:
+            self._log(f"Finnhub -> {company_name}")
             finnhub_future = executor.submit(capture_engine.finnhub.collect, company_name)
+            self._log(f"Yahoo -> {company_name}")
             yfinance_future = executor.submit(capture_engine.yfinance.collect, company_name)
 
             for timeframe in selected_timeframes:
@@ -247,7 +256,10 @@ class CapturePipeline:
         self._log(f"Skapar ZIP: {zip_path.name}")
 
         try:
-            created_zip = self.zip_service.create_zip(zip_path, screenshots)
+            created_zip = self.zip_service.create_zip(
+                zip_path,
+                self._build_zip_inputs(screenshots, output_folder),
+            )
         except Exception as exc:
             return CaptureResult.failed(
                 f"Could not create ZIP: {exc}",

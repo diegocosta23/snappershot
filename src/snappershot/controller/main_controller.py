@@ -7,6 +7,11 @@ from typing import Any
 
 from PySide6.QtWidgets import QApplication
 
+try:
+    import pythoncom
+except ImportError:  # pragma: no cover - optional on non-Windows platforms
+    pythoncom = None
+
 from ..controller.capture_pipeline import CapturePipeline
 from ..models.capture_result import CaptureResult
 
@@ -285,6 +290,17 @@ class MainController:
             self._set_status("Fel")
             self._show_error(result.message or "Capture misslyckades.")
 
+    def _copy_text_to_clipboard(self, text: str) -> None:
+        if pythoncom is not None:
+            pythoncom.CoInitialize()
+            try:
+                QApplication.clipboard().setText(text)
+            finally:
+                pythoncom.CoUninitialize()
+            return
+
+        QApplication.clipboard().setText(text)
+
     def handle_copy_zip_requested(self) -> None:
         path_text = str(self._call_view("selected_zip_path", default="") or "").strip()
 
@@ -293,7 +309,7 @@ class MainController:
             return
 
         try:
-            QApplication.clipboard().setText(path_text)
+            self._copy_text_to_clipboard(path_text)
             self._show_success(f"ZIP kopierad till urklipp: {path_text}")
         except Exception as exc:
             self._show_error(f"Kunde inte kopiera ZIP till urklipp: {exc}")
