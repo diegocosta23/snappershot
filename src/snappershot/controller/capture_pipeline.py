@@ -232,14 +232,14 @@ class CapturePipeline:
                 yfinance_data = {}
 
         try:
-            self._log("Startar stock intelligence analysis...")
+            self._log("Startar insamling av rå fundamentdata...")
             asyncio.run(
                 capture_engine.run(
                     company_name,
                     screenshots=screenshots,
                 )
             )
-            self._log("Stock intelligence package saved.")
+            self._log("Rådata-paket sparat.")
         except Exception as exc:
             self._log(f"Stock intelligence collection warning: {exc}")
 

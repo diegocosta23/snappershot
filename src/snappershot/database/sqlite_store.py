@@ -51,26 +51,6 @@ class SQLiteStore:
             )
             conn.execute(
                 """
-                CREATE TABLE IF NOT EXISTS technical_indicators (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ticker TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    payload TEXT
-                )
-                """
-            )
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS news (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ticker TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    payload TEXT
-                )
-                """
-            )
-            conn.execute(
-                """
                 CREATE TABLE IF NOT EXISTS screenshots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT NOT NULL,
@@ -105,14 +85,6 @@ class SQLiteStore:
             conn.execute(
                 "INSERT INTO prices (ticker, created_at, payload) VALUES (?, ?, ?)",
                 (ticker, created_at, str(payload.get("price", {}))),
-            )
-            conn.execute(
-                "INSERT INTO technical_indicators (ticker, created_at, payload) VALUES (?, ?, ?)",
-                (ticker, created_at, str(payload.get("technical", {}))),
-            )
-            conn.execute(
-                "INSERT INTO news (ticker, created_at, payload) VALUES (?, ?, ?)",
-                (ticker, created_at, str(payload.get("news", []))),
             )
             conn.execute(
                 "INSERT INTO screenshots (ticker, created_at, payload) VALUES (?, ?, ?)",

@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 class FinnhubClient:
-    """Collect company fundamentals and news from Finnhub."""
+    """Collect raw company fundamentals from Finnhub."""
 
     def __init__(self, api_key: str | None = None, timeout: int = 15) -> None:
         self.api_key = api_key or os.getenv("FINNHUB_API_KEY", "")
@@ -98,38 +98,10 @@ class FinnhubClient:
             },
         }
 
-    def get_news(self, symbol: str, days: int = 7) -> list[dict[str, Any]]:
-        end_date = datetime.utcnow().date()
-        start_date = end_date - timedelta(days=days)
-        data = self._request(
-            "/company-news",
-            {
-                "symbol": symbol,
-                "from": start_date.strftime("%Y-%m-%d"),
-                "to": end_date.strftime("%Y-%m-%d"),
-            },
-        )
-        if not isinstance(data, list):
-            data = []
-
-        news_items: list[dict[str, Any]] = []
-        for item in data[:10]:
-            news_items.append(
-                {
-                    "date": item.get("datetime"),
-                    "source": item.get("source"),
-                    "url": item.get("url"),
-                    "headline": item.get("headline"),
-                }
-            )
-        return news_items
-
     def collect(self, symbol: str) -> dict[str, Any]:
         profile = self.get_company_profile(symbol)
         fundamentals = self.get_fundamental_metrics(symbol)
-        news = self.get_news(symbol)
         return {
             "profile": profile,
             "fundamentals": fundamentals,
-            "news": news,
         }
