@@ -187,11 +187,10 @@ class MainController:
         return results[:25]
 
     def _update_company_results_for_query(self, query: str) -> None:
-        results = self.search_companies(query)
-        self._call_view("set_company_results", results)
+        self._call_view("set_company_results", [])
 
     def _refresh_company_results_from_current_text(self) -> None:
-        self._update_company_results_for_query(self.current_company_text())
+        self._call_view("set_company_results", [])
 
     def current_company_text(self) -> str:
         value = self._call_view("current_company_text", default="")
@@ -232,18 +231,17 @@ class MainController:
     # ---------------------------------------------------------------------
 
     def handle_search_text_changed(self, text: str) -> None:
-        self._update_company_results_for_query(text)
+        self._call_view("set_company_results", [])
 
     def handle_company_selected(self, company_text: str) -> None:
         normalized = self._normalize_company_name(company_text)
         self._call_view("set_company_text", normalized)
-        self._set_status(f"Valt bolag: {normalized}")
 
     def handle_capture_requested(self) -> None:
-        company_text = self._normalize_company_name(self.current_company_text())
+        archive_name = self._normalize_company_name(self.current_company_text())
 
-        if not company_text:
-            self._show_error("Skriv ett företagsnamn först.")
+        if not archive_name:
+            self._show_error("Skriv ett ZIP-filnamn först.")
             return
 
         timeframes = self.selected_timeframes()
@@ -251,11 +249,11 @@ class MainController:
         self._set_busy(True)
         self._set_status("Arbetar...")
         self._set_progress(5)
-        self._append_log(f"Startar capture för {company_text} ...")
+        self._append_log(f"Startar capture med ZIP-filnamn {archive_name} ...")
         self._process_events()
 
         try:
-            result = self.capture_pipeline.capture_company(company_text, timeframes)
+            result = self.capture_pipeline.capture_company(archive_name, timeframes)
             self._apply_capture_result(result)
         except Exception as exc:
             log.exception("Capture misslyckades med undantag: %s", exc)

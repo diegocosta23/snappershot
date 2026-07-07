@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
 
@@ -42,6 +44,7 @@ class CapturePipeline:
         "4H",
         "45M",
     ]
+    SCREENSHOT_DELAY_SECONDS = 3.0
 
     def __init__(self, log_callback: Callable[[str], None] | None = None) -> None:
         self.company_service = CompanyService()
@@ -144,24 +147,14 @@ class CapturePipeline:
         """
         Kör hela capture-processen för ett företag.
         """
-        self._log(f"Söker företag: {company_name}")
-
-        company = self.company_service.find(company_name)
-
-        if company is None:
-            return CaptureResult.failed(
-                "Company not found.",
-                company_name=company_name,
-            )
-
-        self._log(f"Hittade bolag: {company.name} ({company.ticker})")
+        self._log(f"Förbereder capture för: {company_name}")
 
         self._log("Förbereder TradingView...")
         ready = self.window.prepare()
         if not ready.ok:
             return CaptureResult.failed(
                 f"TradingView Desktop not ready: {ready.message}",
-                company_name=company.name,
+                company_name=company_name,
             )
 
         self._log("Öppnar Symbol Search...")
@@ -169,55 +162,88 @@ class CapturePipeline:
         if not search_result.ok:
             return CaptureResult.failed(
                 f"Could not open Symbol Search: {search_result.message}",
-                company_name=company.name,
+                company_name=company_name,
             )
 
         self._log("Väntar på att du väljer aktie...")
         if not self._show_symbol_selection_dialog():
             return CaptureResult.failed(
                 "Capture cancelled.",
-                company_name=company.name,
+                company_name=company_name,
             )
 
-        chart_state = self._stabilize_chart_state(company.name)
+        chart_state = self._stabilize_chart_state(company_name)
         if chart_state is not None:
             return chart_state
 
         selected_timeframes = list(timeframes or self.DEFAULT_TIMEFRAMES)
-        output_folder = self.storage_service.create_capture_folder(company.name)
+        output_folder = self.storage_service.create_capture_folder(company_name)
         self._log(f"Sparar till: {output_folder}")
 
         screenshots: list[Path] = []
 
-        for timeframe in selected_timeframes:
-            self._log(f"Byter timeframe till {timeframe}...")
+        from ..capture_engine import CaptureEngine
 
-            timeframe_result = self.timeframe.set(timeframe)
-            if not timeframe_result.ok:
-                return CaptureResult.failed(
-                    f"Failed to set timeframe {timeframe}: {timeframe_result.message}",
-                    company_name=company.name,
+        capture_engine = CaptureEngine()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            finnhub_future = executor.submit(capture_engine.finnhub.collect, company_name)
+            yfinance_future = executor.submit(capture_engine.yfinance.collect, company_name)
+
+            for timeframe in selected_timeframes:
+                self._log(f"Byter timeframe till {timeframe}...")
+
+                timeframe_result = self.timeframe.set(timeframe)
+                if not timeframe_result.ok:
+                    return CaptureResult.failed(
+                        f"Failed to set timeframe {timeframe}: {timeframe_result.message}",
+                        company_name=company_name,
+                    )
+
+                time.sleep(self.SCREENSHOT_DELAY_SECONDS)
+
+                screenshot_path = output_folder / f"{timeframe}.png"
+                self._log(f"Tar screenshot: {screenshot_path.name}")
+
+                capture_result = self.snapshot.capture(screenshot_path, label=timeframe)
+                if not capture_result.ok:
+                    return CaptureResult.failed(
+                        f"Failed to capture timeframe {timeframe}: {capture_result.message}",
+                        company_name=company_name,
+                    )
+
+                captured_path = capture_result.data
+                if isinstance(captured_path, Path):
+                    screenshots.append(captured_path)
+                else:
+                    screenshots.append(screenshot_path)
+
+                self._log(f"✓ Klar: {timeframe}")
+
+            try:
+                finnhub_data = finnhub_future.result(timeout=60)
+            except Exception as exc:
+                self._log(f"Finnhub collection warning: {exc}")
+                finnhub_data = {}
+
+            try:
+                yfinance_data = yfinance_future.result(timeout=60)
+            except Exception as exc:
+                self._log(f"Yahoo Finance collection warning: {exc}")
+                yfinance_data = {}
+
+        try:
+            self._log("Startar stock intelligence analysis...")
+            asyncio.run(
+                capture_engine.run(
+                    company_name,
+                    screenshots=screenshots,
                 )
+            )
+            self._log("Stock intelligence package saved.")
+        except Exception as exc:
+            self._log(f"Stock intelligence collection warning: {exc}")
 
-            screenshot_path = output_folder / f"{timeframe}.png"
-            self._log(f"Tar screenshot: {screenshot_path.name}")
-
-            capture_result = self.snapshot.capture(screenshot_path, label=timeframe)
-            if not capture_result.ok:
-                return CaptureResult.failed(
-                    f"Failed to capture timeframe {timeframe}: {capture_result.message}",
-                    company_name=company.name,
-                )
-
-            captured_path = capture_result.data
-            if isinstance(captured_path, Path):
-                screenshots.append(captured_path)
-            else:
-                screenshots.append(screenshot_path)
-
-            self._log(f"✓ Klar: {timeframe}")
-
-        zip_path = self.storage_service.zip_path(company.name)
+        zip_path = self.storage_service.zip_path(company_name)
         self._log(f"Skapar ZIP: {zip_path.name}")
 
         try:
@@ -225,37 +251,37 @@ class CapturePipeline:
         except Exception as exc:
             return CaptureResult.failed(
                 f"Could not create ZIP: {exc}",
-                company_name=company.name,
+                company_name=company_name,
             )
 
         if not created_zip.exists():
             return CaptureResult.failed(
                 "ZIP filen skapades inte.",
-                company_name=company.name,
+                company_name=company_name,
             )
 
         try:
             if created_zip.stat().st_size <= 0:
                 return CaptureResult.failed(
                     "ZIP filen är tom.",
-                    company_name=company.name,
+                    company_name=company_name,
                 )
         except Exception as exc:
             return CaptureResult.failed(
                 f"Could not verify ZIP: {exc}",
-                company_name=company.name,
+                company_name=company_name,
             )
 
         if not zipfile.is_zipfile(created_zip):
             return CaptureResult.failed(
                 "ZIP filen är korrupt.",
-                company_name=company.name,
+                company_name=company_name,
             )
 
         self._log(f"✓ ZIP klar: {created_zip.name}")
 
         return CaptureResult.completed(
-            company_name=company.name,
+            company_name=company_name,
             output_folder=output_folder,
             screenshots=screenshots,
             zip_path=created_zip,

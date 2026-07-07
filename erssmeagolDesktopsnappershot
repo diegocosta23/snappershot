@@ -1,0 +1,133 @@
+[1mdiff --git a/src/snappershot/controller/capture_pipeline.py b/src/snappershot/controller/capture_pipeline.py[m
+[1mindex e245ca5..b34d0e2 100644[m
+[1m--- a/src/snappershot/controller/capture_pipeline.py[m
+[1m+++ b/src/snappershot/controller/capture_pipeline.py[m
+[36m@@ -42,6 +42,7 @@[m [mclass CapturePipeline:[m
+         "4H",[m
+         "45M",[m
+     ][m
+[32m+[m[32m    SCREENSHOT_DELAY_SECONDS = 3.0[m
+ [m
+     def __init__(self, log_callback: Callable[[str], None] | None = None) -> None:[m
+         self.company_service = CompanyService()[m
+[36m@@ -144,17 +145,7 @@[m [mclass CapturePipeline:[m
+         """[m
+         Kör hela capture-processen för ett företag.[m
+         """[m
+[31m-        self._log(f"Söker företag: {company_name}")[m
+[31m-[m
+[31m-        company = self.company_service.find(company_name)[m
+[31m-[m
+[31m-        if company is None:[m
+[31m-            return CaptureResult.failed([m
+[31m-                "Company not found.",[m
+[31m-                company_name=company_name,[m
+[31m-            )[m
+[31m-[m
+[31m-        self._log(f"Hittade bolag: {company.name} ({company.ticker})")[m
+[32m+[m[32m        self._log(f"Förbereder capture för: {company_name}")[m
+ [m
+         self._log("Förbereder TradingView...")[m
+         ready = self.window.prepare()[m
+[36m@@ -169,22 +160,22 @@[m [mclass CapturePipeline:[m
+         if not search_result.ok:[m
+             return CaptureResult.failed([m
+                 f"Could not open Symbol Search: {search_result.message}",[m
+[31m-                company_name=company.name,[m
+[32m+[m[32m                company_name=company_name,[m
+             )[m
+ [m
+         self._log("Väntar på att du väljer aktie...")[m
+         if not self._show_symbol_selection_dialog():[m
+             return CaptureResult.failed([m
+                 "Capture cancelled.",[m
+[31m-                company_name=company.name,[m
+[32m+[m[32m                company_name=company_name,[m
+             )[m
+ [m
+[31m-        chart_state = self._stabilize_chart_state(company.name)[m
+[32m+[m[32m        chart_state = self._stabilize_chart_state(company_name)[m
+         if chart_state is not None:[m
+             return chart_state[m
+ [m
+         selected_timeframes = list(timeframes or self.DEFAULT_TIMEFRAMES)[m
+[31m-        output_folder = self.storage_service.create_capture_folder(company.name)[m
+[32m+[m[32m        output_folder = self.storage_service.create_capture_folder(company_name)[m
+         self._log(f"Sparar till: {output_folder}")[m
+ [m
+         screenshots: list[Path] = [][m
+[36m@@ -196,9 +187,11 @@[m [mclass CapturePipeline:[m
+             if not timeframe_result.ok:[m
+                 return CaptureResult.failed([m
+                     f"Failed to set timeframe {timeframe}: {timeframe_result.message}",[m
+[31m-                    company_name=company.name,[m
+[32m+[m[32m                    company_name=company_name,[m
+                 )[m
+ [m
+[32m+[m[32m            time.sleep(self.SCREENSHOT_DELAY_SECONDS)[m
+[32m+[m
+             screenshot_path = output_folder / f"{timeframe}.png"[m
+             self._log(f"Tar screenshot: {screenshot_path.name}")[m
+ [m
+[36m@@ -206,7 +199,7 @@[m [mclass CapturePipeline:[m
+             if not capture_result.ok:[m
+                 return CaptureResult.failed([m
+                     f"Failed to capture timeframe {timeframe}: {capture_result.message}",[m
+[31m-                    company_name=company.name,[m
+[32m+[m[32m                    company_name=company_name,[m
+                 )[m
+ [m
+             captured_path = capture_result.data[m
+[36m@@ -217,7 +210,7 @@[m [mclass CapturePipeline:[m
+ [m
+             self._log(f"✓ Klar: {timeframe}")[m
+ [m
+[31m-        zip_path = self.storage_service.zip_path(company.name)[m
+[32m+[m[32m        zip_path = self.storage_service.zip_path(company_name)[m
+         self._log(f"Skapar ZIP: {zip_path.name}")[m
+ [m
+         try:[m
+[36m@@ -225,37 +218,37 @@[m [mclass CapturePipeline:[m
+         except Exception as exc:[m
+             return CaptureResult.failed([m
+                 f"Could not create ZIP: {exc}",[m
+[31m-                company_name=company.name,[m
+[32m+[m[32m                company_name=company_name,[m
+             )[m
+ [m
+         if not created_zip.exists():[m
+             return CaptureResult.failed([m
+                 "ZIP filen skapades inte.",[m
+[31m-                company_name=company.name,[m
+[32m+[m[32m                company_name=company_name,[m
+             )[m
+ [m
+         try:[m
+             if created_zip.stat().st_size <= 0:[m
+                 return CaptureResult.failed([m
+                     "ZIP filen är tom.",[m
+[31m-                    company_name=company.name,[m
+[32m+[m[32m                    company_name=company_name,[m
+                 )[m
+         except Exception as exc:[m
+             return CaptureResult.failed([m
+                 f"Could not verify ZIP: {exc}",[m
+[31m-                company_name=company.name,[m
+[32m+[m[32m                company_name=company_name,[m
+             )[m
+ [m
+         if not zipfile.is_zipfile(created_zip):[m
+             return CaptureResult.failed([m
+                 "ZIP filen är korrupt.",[m
+[31m-                company_name=company.name,[m
+[32m+[m[32m                company_name=company_name,[m
+             )[m
+ [m
+         self._log(f"✓ ZIP klar: {created_zip.name}")[m
+ [m
+         return CaptureResult.completed([m
+[31m-            company_name=company.name,[m
+[32m+[m[32m            company_name=company_name,[m
+             output_folder=output_folder,[m
+             screenshots=screenshots,[m
+             zip_path=created_zip,[m

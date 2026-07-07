@@ -93,13 +93,13 @@ class MainWindow(QMainWindow):
         search_layout.setContentsMargins(14, 12, 14, 12)
         search_layout.setSpacing(8)
 
-        search_title = QLabel("Sök företag")
+        search_title = QLabel("ZIP-filnamn")
         search_title.setObjectName("sectionLabel")
 
         self.company_input = QLineEdit()
-        self.company_input.setPlaceholderText("Skriv exempelvis Investor...")
+        self.company_input.setPlaceholderText("Skriv namn för ZIP-filen")
 
-        self.results_hint = QLabel("Skriv minst två tecken för att se träffar.")
+        self.results_hint = QLabel("Detta namn används som ZIP-filnamnet.")
         self.results_hint.setObjectName("subtitleLabel")
 
         self.company_results = QListWidget()
