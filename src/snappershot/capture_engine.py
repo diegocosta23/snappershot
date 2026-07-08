@@ -69,7 +69,7 @@ class CaptureEngine:
         profitability_source = "finnhub" if self._safe_number(profitability.get("gross_margin")) is not None else "yfinance"
         growth_source = "finnhub" if self._safe_number(growth.get("revenue_growth")) is not None else "yfinance"
         strength_source = "finnhub" if self._safe_number(strength.get("debt_to_equity")) is not None else "yfinance"
-        cashflow_source = "finnhub" if self._safe_number(strength.get("operating_cashflow")) is not None else "yfinance"
+        cashflow_source = "finnhub" if self._safe_number(fundamentals.get("cashflow", {}).get("operating_cash_flow")) is not None else "yfinance"
         dividend_source = "finnhub" if self._safe_number(dividend.get("dividend_yield")) is not None else "yfinance"
         analyst_source = "finnhub" if self._safe_number(analyst.get("recommendation")) is not None else "yfinance"
 
