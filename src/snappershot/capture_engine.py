@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .collectors.finnhub_client import FinnhubClient
+from .collectors.fmp_client import FMPClient
 from .collectors.yfinance_client import YahooFinanceClient
 from .database.sqlite_store import SQLiteStore
 from .exports.package_export import build_analysis_package
@@ -23,6 +24,7 @@ class CaptureEngine:
     def __init__(self) -> None:
         self.storage_service = StorageService()
         self.finnhub = FinnhubClient()
+        self.fmp = FMPClient()
         self.yfinance = YahooFinanceClient()
         self.store = SQLiteStore()
         self.snapshot_builder = FinancialSnapshotBuilder()
@@ -33,6 +35,7 @@ class CaptureEngine:
         ticker: str,
         finnhub_data: dict[str, Any],
         yfinance_data: dict[str, Any],
+        fmp_data: dict[str, Any],
         screenshots: list[Path | str] | None = None,
     ) -> dict[str, Any]:
         _ = screenshots
@@ -42,6 +45,7 @@ class CaptureEngine:
             resolved_ticker=provider_symbols["yahoo_symbol"],
             finnhub_data=finnhub_data,
             yfinance_data=yfinance_data,
+            fmp_data=fmp_data,
         )
 
     async def run(
@@ -57,10 +61,12 @@ class CaptureEngine:
             provider_symbols = self.provider_symbols.translate(self.yfinance._resolve_ticker(ticker))
             finnhub_task = asyncio.to_thread(self.finnhub.collect, provider_symbols["finnhub_symbol"])
             yfinance_task = asyncio.to_thread(self.yfinance.collect, provider_symbols["yahoo_symbol"])
+            fmp_task = asyncio.to_thread(self.fmp.collect, provider_symbols["fmp_symbol"])
 
-            finnhub_data, yfinance_data = await asyncio.gather(
+            finnhub_data, yfinance_data, fmp_data = await asyncio.gather(
                 finnhub_task,
                 yfinance_task,
+                fmp_task,
                 return_exceptions=True,
             )
 
@@ -70,8 +76,11 @@ class CaptureEngine:
             if isinstance(yfinance_data, Exception):
                 log.warning("Yahoo Finance collection failed: %s", yfinance_data)
                 yfinance_data = {}
+            if isinstance(fmp_data, Exception):
+                log.warning("FMP collection failed: %s", fmp_data)
+                fmp_data = {}
 
-            payload = self._build_analysis_payload(ticker, finnhub_data, yfinance_data, screenshots)
+            payload = self._build_analysis_payload(ticker, finnhub_data, yfinance_data, fmp_data, screenshots)
             export_path = build_analysis_package(payload, output_folder)
             self.store.save_capture(ticker, payload)
             export_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")

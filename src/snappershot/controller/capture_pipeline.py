@@ -10,7 +10,6 @@ from typing import Callable
 
 import pyautogui
 import win32gui
-from PySide6.QtWidgets import QMessageBox
 
 from ..models.capture_result import CaptureResult
 from ..services.company_service import CompanyService
@@ -25,37 +24,17 @@ log = logging.getLogger(__name__)
 
 
 class CapturePipeline:
-    """
-    Kör hela capture-processen för ett företag.
-
-    Flöde:
-        1. Hitta företag
-        2. Förbered TradingView
-        3. Öppna Symbol Search
-        4. Vänta på att användaren väljer aktie
-        5. Stabilisera chart-läget
-        6. Byt timeframe och ta screenshots
-        7. Skapa ZIP
-    """
-
-    DEFAULT_TIMEFRAMES = [
-        "1W",
-        "1D",
-        "4H",
-        "45M",
-    ]
+    DEFAULT_TIMEFRAMES = ["1W", "1D", "4H", "45M"]
     SCREENSHOT_DELAY_SECONDS = 3.0
 
     def __init__(self, log_callback: Callable[[str], None] | None = None) -> None:
         self.company_service = CompanyService()
         self.storage_service = StorageService()
         self.zip_service = ZipService()
-
         self.window = WindowManager()
         self.search = TradingViewSearch(self.window)
         self.timeframe = TimeframeController(self.window)
         self.snapshot = SnapshotEngine(self.window)
-
         self._log_callback = log_callback
 
     def _log(self, message: str) -> None:
@@ -72,29 +51,6 @@ class CapturePipeline:
         if analysis_package_path.exists():
             zip_inputs.append(analysis_package_path)
         return zip_inputs
-
-    def _show_symbol_selection_dialog(self) -> bool:
-        dialog = QMessageBox()
-        dialog.setWindowTitle("SnapperShot")
-        dialog.setIcon(QMessageBox.Icon.Information)
-        dialog.setText("Välj aktie i TradingView.")
-        dialog.setInformativeText("När grafen har laddat klart klickar du Fortsätt.")
-
-        continue_button = dialog.addButton(
-            "Fortsätt",
-            QMessageBox.ButtonRole.AcceptRole,
-        )
-        cancel_button = dialog.addButton(
-            "Avbryt",
-            QMessageBox.ButtonRole.RejectRole,
-        )
-
-        dialog.setDefaultButton(continue_button)
-        dialog.setEscapeButton(cancel_button)
-
-        dialog.exec()
-
-        return dialog.clickedButton() == continue_button
 
     def _stabilize_chart_state(self, company_name: str) -> CaptureResult | None:
         focus = self.window.focus()
@@ -120,17 +76,10 @@ class CapturePipeline:
         hwnd = self.window.hwnd
         if hwnd is not None:
             try:
-                client_left, client_top, client_right, client_bottom = (
-                    win32gui.GetClientRect(hwnd)
-                )
+                client_left, client_top, client_right, client_bottom = win32gui.GetClientRect(hwnd)
                 center_client_x = (client_right - client_left) // 2
                 center_client_y = (client_bottom - client_top) // 2
-
-                center_x, center_y = win32gui.ClientToScreen(
-                    hwnd,
-                    (center_client_x, center_client_y),
-                )
-
+                center_x, center_y = win32gui.ClientToScreen(hwnd, (center_client_x, center_client_y))
                 pyautogui.click(center_x, center_y)
                 time.sleep(0.10)
                 pyautogui.press("escape")
@@ -146,8 +95,8 @@ class CapturePipeline:
         tradingview_symbol: str | None = None,
     ) -> CaptureResult:
         self._log(f"Förbereder capture för: {company_name}")
-
         self._log("Förbereder TradingView...")
+
         ready = self.window.prepare()
         if not ready.ok:
             return CaptureResult.failed(
@@ -163,13 +112,6 @@ class CapturePipeline:
             if not search_result.ok:
                 return CaptureResult.failed(
                     f"Could not open Symbol Search: {search_result.message}",
-                    company_name=company_name,
-                )
-
-            self._log("Väntar på att du väljer aktie...")
-            if not self._show_symbol_selection_dialog():
-                return CaptureResult.failed(
-                    "Capture cancelled.",
                     company_name=company_name,
                 )
 
@@ -276,28 +218,16 @@ class CapturePipeline:
             )
 
         if not created_zip.exists():
-            return CaptureResult.failed(
-                "ZIP filen skapades inte.",
-                company_name=company_name,
-            )
+            return CaptureResult.failed("ZIP filen skapades inte.", company_name=company_name)
 
         try:
             if created_zip.stat().st_size <= 0:
-                return CaptureResult.failed(
-                    "ZIP filen är tom.",
-                    company_name=company_name,
-                )
+                return CaptureResult.failed("ZIP filen är tom.", company_name=company_name)
         except Exception as exc:
-            return CaptureResult.failed(
-                f"Could not verify ZIP: {exc}",
-                company_name=company_name,
-            )
+            return CaptureResult.failed(f"Could not verify ZIP: {exc}", company_name=company_name)
 
         if not zipfile.is_zipfile(created_zip):
-            return CaptureResult.failed(
-                "ZIP filen är korrupt.",
-                company_name=company_name,
-            )
+            return CaptureResult.failed("ZIP filen är korrupt.", company_name=company_name)
 
         self._log(f"✓ ZIP klar: {created_zip.name}")
 

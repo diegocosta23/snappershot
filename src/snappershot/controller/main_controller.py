@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover - optional on non-Windows platforms
 
 from ..controller.capture_pipeline import CapturePipeline
 from ..models.capture_result import CaptureResult
+from ..models.selected_company import SelectedCompany
 from ..services.provider_symbols import ProviderSymbolMapper
 from ..symbols.symbol_resolver import SymbolResolver
 
@@ -39,7 +40,7 @@ class MainController:
         self.company_service = self.capture_pipeline.company_service
         self.symbol_resolver = SymbolResolver()
         self.provider_symbols = ProviderSymbolMapper()
-        self._selected_provider_symbols: dict[str, str] = {}
+        self.selected_company: SelectedCompany | None = None
 
         if view is not None:
             self.bind_view(view)
@@ -234,9 +235,18 @@ class MainController:
         self._call_view("set_company_text", normalized)
         matches = self.symbol_resolver.search(normalized)
         if matches:
-            self._selected_provider_symbols = self.provider_symbols.translate(matches[0].get("symbol", ""))
+            selected = matches[0]
+            symbols = self.provider_symbols.translate(selected.get("symbol", ""))
+            self.selected_company = SelectedCompany(
+                display_name=normalized,
+                yahoo_symbol=symbols["yahoo_symbol"],
+                tradingview_symbol=symbols["tradingview_symbol"],
+                finnhub_symbol=symbols["finnhub_symbol"],
+                exchange=str(selected.get("exchange") or ""),
+                country=str(selected.get("country") or ""),
+            )
         else:
-            self._selected_provider_symbols = {}
+            self.selected_company = None
 
     def handle_capture_requested(self) -> None:
         archive_name = self._normalize_company_name(self.current_company_text())
@@ -257,7 +267,7 @@ class MainController:
             result = self.capture_pipeline.capture_company(
                 archive_name,
                 timeframes,
-                self._selected_provider_symbols.get("tradingview_symbol"),
+                self.selected_company.tradingview_symbol if self.selected_company else None,
             )
             self._apply_capture_result(result)
         except Exception as exc:
@@ -336,7 +346,7 @@ class MainController:
     def handle_clear_requested(self) -> None:
         self._call_view("set_company_text", "")
         self._call_view("set_company_results", [])
-        self._selected_provider_symbols = {}
+        self.selected_company = None
         self._set_result(None, None)
         self._set_status("Redo")
         self._set_progress(0)

@@ -10,6 +10,53 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
         payload = builder.build(
             search_name="Investor B",
             resolved_ticker="INVE-B.ST",
+            fmp_data={
+                "profile": {
+                    "companyName": "Investor AB ser. B",
+                    "symbol": "INVE-B.ST",
+                    "exchangeShortName": "OMXSTO",
+                    "currency": "SEK",
+                    "sector": "Financial Services",
+                    "industry": "Asset Management",
+                    "price": 251.0,
+                    "mktCap": 123456,
+                    "volAvg": 14000,
+                    "lastDiv": 5.8,
+                },
+                "financial_statements": {
+                    "income_statement": {"revenue": 999999, "eps": 12.8},
+                    "balance_sheet": {"totalDebt": 300},
+                    "cash_flow": {"netCashProvidedByOperatingActivities": 80, "freeCashFlow": 60},
+                },
+                "ratios": {
+                    "returnOnEquity": 0.21,
+                    "returnOnAssets": 0.14,
+                    "returnOnCapitalEmployed": 0.18,
+                    "netDebtToEBITDA": 1.5,
+                    "priceEarningsRatio": 17.0,
+                    "priceToSalesRatio": 4.2,
+                    "priceToBookRatio": 1.8,
+                    "grossProfitMargin": 0.4,
+                    "operatingProfitMargin": 0.18,
+                    "netProfitMargin": 0.13,
+                    "debtToEquity": 0.5,
+                    "dividendYield": 0.02,
+                    "payoutRatio": 0.4,
+                    "enterpriseValueMultiple": 15.2,
+                },
+                "key_metrics": {
+                    "eps": 12.8,
+                    "revenuePerShare": 54.0,
+                    "bookValuePerShare": 88.0,
+                    "enterpriseValue": 9000,
+                    "netDebt": 300,
+                },
+                "financial_growth": {
+                    "revenueGrowth": 0.08,
+                    "epsgrowth": 0.11,
+                    "freeCashFlowGrowth": 0.09,
+                },
+            },
             finnhub_data={
                 "profile": {
                     "company_name": "Investor AB ser. B",
@@ -76,7 +123,7 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
         self.assertIn("created_at", payload["metadata"])
         self.assertIn("data_sources", payload["metadata"])
         self.assertIn("data_quality", payload["metadata"])
-        self.assertEqual(payload["metadata"]["data_sources"], ["yfinance", "finnhub"])
+        self.assertEqual(payload["metadata"]["data_sources"], ["fmp", "yfinance", "finnhub"])
         self.assertIn("company", payload)
         self.assertIn("market", payload)
         self.assertIn("key_metrics", payload)
@@ -90,8 +137,10 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
                 self.assertIn("value", datapoint)
                 self.assertIn("source", datapoint)
 
-        self.assertEqual(payload["company"]["name"], {"value": "Investor AB ser. B", "source": "yfinance"})
+        self.assertEqual(payload["company"]["name"], {"value": "Investor AB ser. B", "source": "fmp"})
         self.assertEqual(payload["market"]["current_price"]["source"], "yfinance")
+        self.assertEqual(payload["key_metrics"]["return_on_equity"]["source"], "fmp")
+        self.assertEqual(payload["cashflow"]["free_cash_flow"]["source"], "fmp")
         self.assertEqual(payload["analyst_consensus"]["strong_buy"]["source"], "finnhub")
         self.assertNotIn("historical_ohlcv", payload)
 
@@ -103,10 +152,11 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
             resolved_ticker="EMPTY.ST",
             finnhub_data={},
             yfinance_data={},
+            fmp_data={},
         )
 
         data_quality = payload["metadata"]["data_quality"]
-        self.assertEqual(data_quality["total_fields"], 37)
+        self.assertEqual(data_quality["total_fields"], 45)
         self.assertEqual(data_quality["fields_found"], 0)
         self.assertEqual(data_quality["percent_complete"], 0.0)
         self.assertIn("company.name", data_quality["missing_fields"])

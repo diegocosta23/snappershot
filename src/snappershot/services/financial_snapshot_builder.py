@@ -3,8 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from .provider_manager import ProviderManager
+
 
 class FinancialSnapshotBuilder:
+    def __init__(self) -> None:
+        self.provider_manager = ProviderManager()
     def _safe_value(self, value: Any) -> Any:
         return value if value not in (None, "", {}, []) else None
 
@@ -55,6 +59,7 @@ class FinancialSnapshotBuilder:
             ("company", "industry"),
             ("market", "current_price"),
             ("market", "market_cap"),
+            ("market", "enterprise_value"),
             ("market", "volume"),
             ("market", "average_volume"),
             ("market", "52_week_high"),
@@ -74,6 +79,13 @@ class FinancialSnapshotBuilder:
             ("profitability", "profit_margin"),
             ("growth", "revenue_growth"),
             ("growth", "earnings_growth"),
+            ("balance", "total_debt"),
+            ("balance", "net_debt"),
+            ("balance", "debt_equity"),
+            ("balance", "net_debt_ebitda"),
+            ("cashflow", "operating_cash_flow"),
+            ("cashflow", "free_cash_flow"),
+            ("cashflow", "fcf_margin"),
             ("dividend", "dividend_yield"),
             ("dividend", "dividend_rate"),
             ("dividend", "payout_ratio"),
@@ -110,85 +122,19 @@ class FinancialSnapshotBuilder:
         resolved_ticker: str,
         finnhub_data: dict[str, Any],
         yfinance_data: dict[str, Any],
+        fmp_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        profile = finnhub_data.get("profile", {}) if isinstance(finnhub_data, dict) else {}
-        fundamentals = finnhub_data.get("fundamentals", {}) if isinstance(finnhub_data, dict) else {}
-        valuation = fundamentals.get("valuation", {}) if isinstance(fundamentals, dict) else {}
-        finnhub_profitability = fundamentals.get("profitability", {}) if isinstance(fundamentals, dict) else {}
-        finnhub_growth = fundamentals.get("growth", {}) if isinstance(fundamentals, dict) else {}
-        finnhub_dividend = fundamentals.get("dividend", {}) if isinstance(fundamentals, dict) else {}
-        finnhub_analyst = fundamentals.get("analyst", {}) if isinstance(fundamentals, dict) else {}
-
-        yfinance_company = yfinance_data.get("company", {}) if isinstance(yfinance_data, dict) else {}
-        yfinance_fundamentals = yfinance_data.get("fundamentals", {}) if isinstance(yfinance_data, dict) else {}
-        yfinance_valuation = yfinance_fundamentals.get("valuation", {}) if isinstance(yfinance_fundamentals, dict) else {}
-        yfinance_profitability = yfinance_fundamentals.get("profitability", {}) if isinstance(yfinance_fundamentals, dict) else {}
-        yfinance_growth = yfinance_fundamentals.get("growth", {}) if isinstance(yfinance_fundamentals, dict) else {}
-        yfinance_dividend = yfinance_fundamentals.get("dividend", {}) if isinstance(yfinance_fundamentals, dict) else {}
-        yfinance_analyst = yfinance_fundamentals.get("analyst", {}) if isinstance(yfinance_fundamentals, dict) else {}
-
-        company = {
-            "name": self._point(self._deep_get(yfinance_company, "name"), "yfinance", self._deep_get(profile, "company_name") or self._deep_get(profile, "name"), "finnhub"),
-            "ticker": self._point(self._deep_get(yfinance_company, "ticker"), "yfinance", self._deep_get(profile, "symbol"), "finnhub"),
-            "exchange": self._point(self._deep_get(yfinance_company, "exchange"), "yfinance", self._deep_get(profile, "exchange"), "finnhub"),
-            "currency": self._point(self._deep_get(yfinance_company, "currency"), "yfinance", self._deep_get(profile, "currency"), "finnhub"),
-            "sector": self._point(self._deep_get(yfinance_company, "sector"), "yfinance", self._deep_get(profile, "sector"), "finnhub"),
-            "industry": self._point(self._deep_get(yfinance_company, "industry"), "yfinance", self._deep_get(profile, "industry"), "finnhub"),
-        }
-
-        market = {
-            "current_price": self._point(self._deep_get(yfinance_data, "price", "current_price"), "yfinance", self._deep_get(finnhub_data, "price", "current_price"), "finnhub"),
-            "market_cap": self._point(self._deep_get(yfinance_company, "market_cap"), "yfinance", self._deep_get(profile, "market_capitalization"), "finnhub"),
-            "volume": self._point(self._deep_get(yfinance_data, "price", "volume"), "yfinance", self._deep_get(finnhub_data, "price", "volume"), "finnhub"),
-            "average_volume": self._point(self._deep_get(yfinance_data, "extra", "average_volume"), "yfinance", self._deep_get(finnhub_data, "extra", "average_volume"), "finnhub"),
-            "52_week_high": self._point(self._deep_get(yfinance_data, "extra", "fifty_two_week_high") or self._deep_get(yfinance_data, "extra", "fiftyTwoWeekHigh"), "yfinance", self._deep_get(finnhub_data, "extra", "fifty_two_week_high"), "finnhub"),
-            "52_week_low": self._point(self._deep_get(yfinance_data, "extra", "fifty_two_week_low") or self._deep_get(yfinance_data, "extra", "fiftyTwoWeekLow"), "yfinance", self._deep_get(finnhub_data, "extra", "fifty_two_week_low"), "finnhub"),
-        }
-
-        key_metrics = {
-            "earnings_per_share": self._point(
-                self._deep_get(yfinance_data, "price", "eps") or self._deep_get(yfinance_fundamentals, "financial_statements", "income_statement", "eps") or self._deep_get(yfinance_fundamentals, "eps"),
-                "yfinance",
-                self._deep_get(finnhub_data, "fundamentals", "profitability", "eps"),
-                "finnhub",
-            ),
-            "revenue_per_share": self._point(self._deep_get(yfinance_company, "revenue_per_share"), "yfinance", self._deep_get(finnhub_profitability, "revenue_per_share") or self._deep_get(profile, "revenue_per_share"), "finnhub"),
-            "return_on_equity": self._point(self._deep_get(yfinance_profitability, "roe"), "yfinance", self._deep_get(finnhub_profitability, "roe"), "finnhub"),
-            "net_debt_to_ebitda": self._point(self._deep_get(yfinance_fundamentals, "financial_strength", "net_debt_to_ebitda") or self._deep_get(yfinance_fundamentals, "financial_strength", "debt_to_ebitda"), "yfinance", self._deep_get(finnhub_data, "fundamentals", "financial_strength", "net_debt_to_ebitda") or self._deep_get(finnhub_data, "fundamentals", "financial_strength", "debt_to_ebitda"), "finnhub"),
-            "pe_ratio": self._point(self._deep_get(yfinance_valuation, "pe"), "yfinance", self._deep_get(valuation, "pe"), "finnhub"),
-            "forward_pe": self._point(self._deep_get(yfinance_valuation, "forward_pe"), "yfinance", self._deep_get(valuation, "forward_pe"), "finnhub"),
-            "ps_ratio": self._point(self._deep_get(yfinance_valuation, "ps"), "yfinance", self._deep_get(valuation, "ps"), "finnhub"),
-            "pb_ratio": self._point(self._deep_get(yfinance_valuation, "pb"), "yfinance", self._deep_get(valuation, "pb"), "finnhub"),
-            "ev_to_ebit": self._point(self._deep_get(yfinance_valuation, "ev_ebit"), "yfinance", self._deep_get(valuation, "ev_to_ebit") or self._deep_get(valuation, "ev_ebit"), "finnhub"),
-            "ev_to_ebitda": self._point(self._deep_get(yfinance_valuation, "ev_ebitda"), "yfinance", self._deep_get(valuation, "ev_ebitda"), "finnhub"),
-        }
-
-        profitability = {
-            "gross_margin": self._point(self._deep_get(yfinance_profitability, "gross_margin"), "yfinance", self._deep_get(finnhub_profitability, "gross_margin"), "finnhub"),
-            "operating_margin": self._point(self._deep_get(yfinance_profitability, "operating_margin"), "yfinance", self._deep_get(finnhub_profitability, "operating_margin"), "finnhub"),
-            "profit_margin": self._point(self._deep_get(yfinance_profitability, "net_margin"), "yfinance", self._deep_get(finnhub_profitability, "net_margin"), "finnhub"),
-        }
-
-        growth = {
-            "revenue_growth": self._point(self._deep_get(yfinance_growth, "revenue_growth"), "yfinance", self._deep_get(finnhub_growth, "revenue_growth"), "finnhub"),
-            "earnings_growth": self._point(self._deep_get(yfinance_growth, "eps_growth"), "yfinance", self._deep_get(finnhub_growth, "eps_growth"), "finnhub"),
-        }
-
-        dividend = {
-            "dividend_yield": self._point(self._deep_get(yfinance_dividend, "yield") or self._deep_get(yfinance_data, "extra", "dividendYield"), "yfinance", self._deep_get(finnhub_dividend, "dividend_yield"), "finnhub"),
-            "dividend_rate": self._point(self._deep_get(yfinance_dividend, "dividend_rate") or self._deep_get(yfinance_data, "extra", "dividendRate"), "yfinance", self._deep_get(finnhub_dividend, "dividend_rate"), "finnhub"),
-            "payout_ratio": self._point(self._deep_get(yfinance_dividend, "payout_ratio"), "yfinance", self._deep_get(finnhub_dividend, "payout_ratio"), "finnhub"),
-        }
-
-        analyst_consensus = {
-            "strong_buy": self._point(self._deep_get(finnhub_analyst, "recommendation", "strong_buy"), "finnhub", self._deep_get(yfinance_analyst, "recommendation", "strong_buy"), "yfinance"),
-            "buy": self._point(self._deep_get(finnhub_analyst, "recommendation", "buy"), "finnhub", self._deep_get(yfinance_analyst, "recommendation", "buy"), "yfinance"),
-            "hold": self._point(self._deep_get(finnhub_analyst, "recommendation", "hold"), "finnhub", self._deep_get(yfinance_analyst, "recommendation", "hold"), "yfinance"),
-            "sell": self._point(self._deep_get(finnhub_analyst, "recommendation", "sell"), "finnhub", self._deep_get(yfinance_analyst, "recommendation", "sell"), "yfinance"),
-            "target_high_price": self._point(self._deep_get(finnhub_analyst, "target_price", "high") or self._deep_get(finnhub_analyst, "targetHighPrice"), "finnhub", self._deep_get(yfinance_analyst, "target_price", "high") or self._deep_get(yfinance_analyst, "targetHighPrice"), "yfinance"),
-            "target_mean_price": self._point(self._deep_get(finnhub_analyst, "target_price", "average") or self._deep_get(finnhub_analyst, "targetMeanPrice"), "finnhub", self._deep_get(yfinance_analyst, "target_price", "average") or self._deep_get(yfinance_analyst, "targetMeanPrice") or self._deep_get(yfinance_analyst, "target_price"), "yfinance"),
-            "target_low_price": self._point(self._deep_get(finnhub_analyst, "target_price", "low") or self._deep_get(finnhub_analyst, "targetLowPrice"), "finnhub", self._deep_get(yfinance_analyst, "target_price", "low") or self._deep_get(yfinance_analyst, "targetLowPrice"), "yfinance"),
-        }
+        fmp_data = fmp_data or {}
+        merged = self.provider_manager.build(yahoo_data=yfinance_data, fmp_data=fmp_data, finnhub_data=finnhub_data)
+        company = merged["company"]
+        market = merged["market"]
+        key_metrics = merged["key_metrics"]
+        profitability = merged["profitability"]
+        growth = merged["growth"]
+        balance = merged["balance"]
+        cashflow = merged["cashflow"]
+        dividend = merged["dividend"]
+        analyst_consensus = merged["analyst_consensus"]
 
         payload = {
             "metadata": {
@@ -197,12 +143,14 @@ class FinancialSnapshotBuilder:
                 "resolved_ticker": resolved_ticker,
                 "data_sources": [
                     source
-                    for source in ("yfinance", "finnhub")
+                    for source in ("fmp", "yfinance", "finnhub")
                     if self._section_has_source(company, source)
                     or self._section_has_source(market, source)
                     or self._section_has_source(key_metrics, source)
                     or self._section_has_source(profitability, source)
                     or self._section_has_source(growth, source)
+                    or self._section_has_source(balance, source)
+                    or self._section_has_source(cashflow, source)
                     or self._section_has_source(dividend, source)
                     or self._section_has_source(analyst_consensus, source)
                 ],
@@ -212,6 +160,8 @@ class FinancialSnapshotBuilder:
             "key_metrics": key_metrics,
             "profitability": profitability,
             "growth": growth,
+            "balance": balance,
+            "cashflow": cashflow,
             "dividend": dividend,
             "analyst_consensus": analyst_consensus,
         }
