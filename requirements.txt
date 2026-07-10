@@ -1,0 +1,9 @@
+finnhub-python
+pandas
+pydantic
+PySide6
+pyautogui
+pywin32
+python-dotenv
+requests
+yfinance
