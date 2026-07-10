@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover - optional on non-Windows platforms
 
 from ..controller.capture_pipeline import CapturePipeline
 from ..models.capture_result import CaptureResult
+from ..symbols.symbol_resolver import SymbolResolver
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class MainController:
         self.view: Any | None = None
         self.capture_pipeline = CapturePipeline(log_callback=self._append_log)
         self.company_service = self.capture_pipeline.company_service
+        self.symbol_resolver = SymbolResolver()
 
         if view is not None:
             self.bind_view(view)
@@ -141,61 +143,41 @@ class MainController:
     # Company search
     # ---------------------------------------------------------------------
 
-    def _entry_label(self, company: Any) -> str:
-        name = getattr(company, "name", "") or ""
-        ticker = getattr(company, "ticker", "") or ""
+    def _format_symbol_result(self, result: dict[str, Any]) -> str:
+        name = str(result.get("name") or "").strip()
+        symbol = str(result.get("symbol") or "").strip()
+        exchange = str(result.get("exchange") or "").strip()
 
-        if name and ticker and ticker.casefold() not in name.casefold():
-            return f"{name} ({ticker})"
-
-        if name:
-            return name
-
-        if ticker:
-            return ticker
-
-        return ""
+        return "\n".join(part for part in (name, symbol, exchange) if part)
 
     def search_companies(self, query: str) -> list[str]:
         """
         Returnerar matchande företag som strängar för UI:t.
         """
-        needle = query.strip().casefold()
+        needle = query.strip()
         if len(needle) < 2:
             return []
 
         try:
-            companies = self.company_service.search(query)
+            matches = self.symbol_resolver.search(query)
         except Exception as exc:
-            log.debug("CompanyService.search misslyckades: %s", exc)
+            log.debug("SymbolResolver.search misslyckades: %s", exc)
             return []
 
         results: list[str] = []
-        for company in companies:
-            label = self._entry_label(company)
+        for match in matches:
+            label = self._format_symbol_result(match)
             if not label:
                 continue
-
-            haystack = " ".join(
-                part
-                for part in (
-                    label,
-                    getattr(company, "name", "") or "",
-                    getattr(company, "ticker", "") or "",
-                )
-                if part
-            ).casefold()
-
-            if needle in haystack:
-                results.append(label)
+            results.append(label)
 
         return results[:25]
 
     def _update_company_results_for_query(self, query: str) -> None:
-        self._call_view("set_company_results", [])
+        self._call_view("set_company_results", self.search_companies(query))
 
     def _refresh_company_results_from_current_text(self) -> None:
-        self._call_view("set_company_results", [])
+        self._call_view("set_company_results", self.search_companies(self.current_company_text()))
 
     def current_company_text(self) -> str:
         value = self._call_view("current_company_text", default="")
@@ -236,7 +218,7 @@ class MainController:
     # ---------------------------------------------------------------------
 
     def handle_search_text_changed(self, text: str) -> None:
-        self._call_view("set_company_results", [])
+        self._update_company_results_for_query(text)
 
     def handle_company_selected(self, company_text: str) -> None:
         normalized = self._normalize_company_name(company_text)

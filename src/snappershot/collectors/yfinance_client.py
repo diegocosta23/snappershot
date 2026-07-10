@@ -199,25 +199,6 @@ class YahooFinanceClient:
         }
         return raw_dataset
 
-    def _history_payload(self, ticker: Any, interval: str) -> list[dict[str, Any]]:
-        history = ticker.history(period="5y", interval=interval, auto_adjust=False)
-        if history is None or history.empty:
-            return []
-
-        rows: list[dict[str, Any]] = []
-        for index, row in history.iterrows():
-            rows.append(
-                {
-                    "date": index.strftime("%Y-%m-%d"),
-                    "open": float(row.get("Open", 0.0) or 0.0),
-                    "high": float(row.get("High", 0.0) or 0.0),
-                    "low": float(row.get("Low", 0.0) or 0.0),
-                    "close": float(row.get("Close", 0.0) or 0.0),
-                    "volume": int(row.get("Volume", 0) or 0),
-                }
-            )
-        return rows
-
     def collect(self, symbol: str) -> dict[str, Any]:
         resolved_symbol = self._resolve_ticker(symbol)
         ticker = yf.Ticker(resolved_symbol)
@@ -318,11 +299,6 @@ class YahooFinanceClient:
 
         return {
             "price": price,
-            "historical_ohlcv": {
-                "1d": self._history_payload(ticker, "1d"),
-                "1wk": self._history_payload(ticker, "1wk"),
-                "1mo": self._history_payload(ticker, "1mo"),
-            },
             "financial_statements": financial_statements,
             "extra": extra,
             "company": company,

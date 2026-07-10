@@ -246,6 +246,7 @@ class CapturePipeline:
                 capture_engine.run(
                     company_name,
                     screenshots=screenshots,
+                    output_folder=output_folder,
                 )
             )
             self._log("Rådata-paket sparat.")

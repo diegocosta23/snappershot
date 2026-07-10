@@ -43,6 +43,26 @@ class CaptureEngine:
                 return True
         return False
 
+    def _select_metric_value(self, yfinance_value: Any, finnhub_value: Any) -> tuple[Any, str]:
+        if self._safe_number(yfinance_value) is not None:
+            return yfinance_value, "yfinance"
+        if self._safe_number(finnhub_value) is not None:
+            return finnhub_value, "finnhub"
+        return None, None
+
+    def _metric_point(self, yfinance_value: Any, finnhub_value: Any) -> dict[str, Any]:
+        value, source = self._select_metric_value(yfinance_value, finnhub_value)
+        return {"value": value, "source": source}
+
+    @staticmethod
+    def _deep_get(mapping: Any, *keys: str) -> Any:
+        current = mapping
+        for key in keys:
+            if not isinstance(current, dict):
+                return None
+            current = current.get(key)
+        return current
+
     def _build_analysis_payload(
         self,
         ticker: str,
@@ -68,21 +88,13 @@ class CaptureEngine:
         yfinance_cashflow = yfinance_fundamentals.get("cashflow", {}) if isinstance(yfinance_fundamentals, dict) else {}
         yfinance_dividend = yfinance_fundamentals.get("dividend", {}) if isinstance(yfinance_fundamentals, dict) else {}
         yfinance_analyst = yfinance_fundamentals.get("analyst", {}) if isinstance(yfinance_fundamentals, dict) else {}
-
-        recommendation = self._merge_first_non_empty(analyst.get("recommendation", {}), yfinance_analyst.get("recommendation", {}))
-        target_value = self._merge_first_non_empty(
-            self._safe_number(analyst.get("target_price")) if not isinstance(analyst.get("target_price"), dict) else self._safe_number(analyst.get("target_price", {}).get("targetPrice")),
-            self._safe_number(yfinance_analyst.get("target_price")),
-        )
-
-        company_source = "finnhub" if self._safe_number(profile.get("company_name") or profile.get("name")) is not None else "yfinance"
-        valuation_source = "finnhub" if self._safe_number(valuation.get("pe")) is not None else "yfinance"
-        profitability_source = "finnhub" if self._safe_number(profitability.get("gross_margin")) is not None else "yfinance"
-        growth_source = "finnhub" if self._safe_number(growth.get("revenue_growth")) is not None else "yfinance"
-        strength_source = "finnhub" if self._safe_number(strength.get("debt_to_equity")) is not None else "yfinance"
-        cashflow_source = "finnhub" if self._safe_number(fundamentals.get("cashflow", {}).get("operating_cash_flow")) is not None else "yfinance"
-        dividend_source = "finnhub" if self._safe_number(dividend.get("dividend_yield")) is not None else "yfinance"
-        analyst_source = "finnhub" if self._safe_number(analyst.get("recommendation")) is not None else "yfinance"
+        finnhub_company = profile if isinstance(profile, dict) else {}
+        finnhub_valuation = valuation if isinstance(valuation, dict) else {}
+        finnhub_profitability = profitability if isinstance(profitability, dict) else {}
+        finnhub_growth = growth if isinstance(growth, dict) else {}
+        finnhub_strength = strength if isinstance(strength, dict) else {}
+        finnhub_dividend = dividend if isinstance(dividend, dict) else {}
+        finnhub_analyst = analyst if isinstance(analyst, dict) else {}
 
         data_sources = []
         if self._has_meaningful_data(finnhub_data):
@@ -90,87 +102,141 @@ class CaptureEngine:
         if self._has_meaningful_data(yfinance_data):
             data_sources.append("yfinance")
 
+        company_name = self._merge_first_non_empty(profile.get("company_name") or profile.get("name") or None, self._merge_first_non_empty(self._deep_get(yfinance_company, "name"), ticker))
+        ticker_value = self._merge_first_non_empty(self._deep_get(profile, "symbol"), self._merge_first_non_empty(self._deep_get(yfinance_company, "ticker"), ticker))
+        exchange_value = self._merge_first_non_empty(self._deep_get(profile, "exchange"), self._deep_get(yfinance_company, "exchange"))
+        currency_value = self._merge_first_non_empty(self._deep_get(profile, "currency"), self._deep_get(yfinance_company, "currency"))
+        sector_value = self._merge_first_non_empty(self._deep_get(profile, "sector"), self._deep_get(yfinance_company, "sector"))
+        industry_value = self._merge_first_non_empty(self._deep_get(profile, "industry"), self._deep_get(yfinance_company, "industry"))
+
+        current_price = self._metric_point(self._deep_get(yfinance_data, "price", "current_price"), self._deep_get(finnhub_data, "price", "current_price"))
+        market_cap = self._metric_point(self._deep_get(yfinance_company, "market_cap"), self._deep_get(profile, "market_capitalization"))
+        volume = self._metric_point(self._deep_get(yfinance_data, "price", "volume"), self._deep_get(finnhub_data, "price", "volume"))
+        average_volume = self._metric_point(self._deep_get(yfinance_data, "extra", "average_volume"), self._deep_get(finnhub_data, "extra", "average_volume"))
+        week_high = self._metric_point(self._deep_get(yfinance_data, "extra", "fifty_two_week_high"), self._deep_get(finnhub_data, "extra", "fifty_two_week_high"))
+        week_low = self._metric_point(self._deep_get(yfinance_data, "extra", "fifty_two_week_low"), self._deep_get(finnhub_data, "extra", "fifty_two_week_low"))
+
+        avanza_metrics = {
+            "eps": self._metric_point(
+                self._deep_get(yfinance_data, "fundamentals", "financial_statements", "income_statement", "eps") or self._deep_get(yfinance_data, "fundamentals", "profitability", "eps"),
+                self._deep_get(finnhub_data, "fundamentals", "profitability", "eps"),
+            ),
+            "revenue_per_share": self._metric_point(
+                self._deep_get(yfinance_company, "revenue_per_share") or self._deep_get(yfinance_fundamentals, "revenue_per_share"),
+                self._deep_get(finnhub_company, "revenue_per_share"),
+            ),
+            "roe": self._metric_point(
+                yfinance_profitability.get("roe"),
+                finnhub_profitability.get("roe"),
+            ),
+            "net_debt_ebitda": self._metric_point(
+                yfinance_strength.get("net_debt_ebitda") or yfinance_strength.get("debt_to_ebitda"),
+                finnhub_strength.get("net_debt_ebitda") or finnhub_strength.get("debt_to_ebitda"),
+            ),
+            "pe": self._metric_point(yfinance_valuation.get("pe"), finnhub_valuation.get("pe")),
+            "ps": self._metric_point(yfinance_valuation.get("ps"), finnhub_valuation.get("ps")),
+            "pb": self._metric_point(yfinance_valuation.get("pb"), finnhub_valuation.get("pb")),
+            "ev_ebit": self._metric_point(
+                yfinance_valuation.get("ev_ebit"),
+                finnhub_valuation.get("ev_ebit"),
+            ),
+            "ev_ebitda": self._metric_point(
+                yfinance_valuation.get("ev_ebitda"),
+                finnhub_valuation.get("ev_ebitda"),
+            ),
+            "profitability": {
+                "gross_margin": self._metric_point(yfinance_profitability.get("gross_margin"), finnhub_profitability.get("gross_margin")),
+                "operating_margin": self._metric_point(yfinance_profitability.get("operating_margin"), finnhub_profitability.get("operating_margin")),
+                "profit_margin": self._metric_point(yfinance_profitability.get("net_margin"), finnhub_profitability.get("net_margin")),
+            },
+            "growth": {
+                "revenue_growth": self._metric_point(yfinance_growth.get("revenue_growth"), finnhub_profitability.get("revenue_growth")),
+                "earnings_growth": self._metric_point(yfinance_growth.get("eps_growth"), finnhub_profitability.get("earnings_growth")),
+            },
+            "analysts": {
+                "strong_buy": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "strong_buy"), self._deep_get(finnhub_analyst, "recommendation", "strong_buy")),
+                "buy": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "buy"), self._deep_get(finnhub_analyst, "recommendation", "buy")),
+                "hold": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "hold"), self._deep_get(finnhub_analyst, "recommendation", "hold")),
+                "sell": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "sell"), self._deep_get(finnhub_analyst, "recommendation", "sell")),
+                "target_high_price": self._metric_point(self._deep_get(yfinance_analyst, "target_price", "high") or yfinance_analyst.get("targetHighPrice"), self._deep_get(finnhub_analyst, "target_price", "high") or finnhub_analyst.get("targetHighPrice")),
+                "target_mean_price": self._metric_point(self._deep_get(yfinance_analyst, "target_price", "average") or yfinance_analyst.get("targetMeanPrice"), self._deep_get(finnhub_analyst, "target_price", "average") or finnhub_analyst.get("targetMeanPrice")),
+                "target_low_price": self._metric_point(self._deep_get(yfinance_analyst, "target_price", "low"), self._deep_get(finnhub_analyst, "target_price", "low")),
+            },
+        }
+
         return {
             "search_name": ticker,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "data_sources": data_sources,
             "yahoo_collected_dataset": yfinance_data,
-            "ticker": ticker,
             "company": {
-                "name": self._merge_first_non_empty(profile.get("company_name") or profile.get("name") or None, yfinance_company.get("name") or ticker),
-                "ticker": self._merge_first_non_empty(ticker, yfinance_company.get("ticker") or ticker),
-                "exchange": self._merge_first_non_empty(profile.get("exchange"), yfinance_company.get("exchange")),
-                "sector": self._merge_first_non_empty(profile.get("sector") or profile.get("industry"), yfinance_company.get("sector")),
-                "industry": self._merge_first_non_empty(profile.get("industry"), yfinance_company.get("industry")),
-                "country": self._merge_first_non_empty(profile.get("country"), yfinance_company.get("country")),
-                "market_cap": self._merge_first_non_empty(profile.get("market_capitalization"), yfinance_company.get("market_cap")),
-                "source": company_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
+                "name": {"value": company_name, "source": "yfinance" if self._safe_number(self._deep_get(yfinance_company, "name")) is not None else ("finnhub" if self._safe_number(self._deep_get(profile, "company_name") or self._deep_get(profile, "name")) is not None else None)},
+                "ticker": {"value": ticker_value, "source": "yfinance" if self._safe_number(self._deep_get(yfinance_company, "ticker")) is not None else ("finnhub" if self._safe_number(self._deep_get(profile, "symbol")) is not None else None)},
+                "exchange": {"value": exchange_value, "source": "yfinance" if self._safe_number(self._deep_get(yfinance_company, "exchange")) is not None else ("finnhub" if self._safe_number(self._deep_get(profile, "exchange")) is not None else None)},
+                "currency": {"value": currency_value, "source": "yfinance" if self._safe_number(self._deep_get(yfinance_company, "currency")) is not None else ("finnhub" if self._safe_number(self._deep_get(profile, "currency")) is not None else None)},
+                "sector": {"value": sector_value, "source": "yfinance" if self._safe_number(self._deep_get(yfinance_company, "sector")) is not None else ("finnhub" if self._safe_number(self._deep_get(profile, "sector")) is not None else None)},
+                "industry": {"value": industry_value, "source": "yfinance" if self._safe_number(self._deep_get(yfinance_company, "industry")) is not None else ("finnhub" if self._safe_number(self._deep_get(profile, "industry")) is not None else None)},
             },
-            "valuation": {
-                "pe": self._merge_first_non_empty(self._safe_number(valuation.get("pe")), self._safe_number(yfinance_valuation.get("pe"))),
-                "forward_pe": self._merge_first_non_empty(self._safe_number(valuation.get("forward_pe")), self._safe_number(yfinance_valuation.get("forward_pe"))),
-                "peg": self._merge_first_non_empty(self._safe_number(valuation.get("peg")), self._safe_number(yfinance_valuation.get("peg"))),
-                "pb": self._merge_first_non_empty(self._safe_number(valuation.get("pb")), self._safe_number(yfinance_valuation.get("pb"))),
-                "ps": self._merge_first_non_empty(self._safe_number(valuation.get("ps")), self._safe_number(yfinance_valuation.get("ps"))),
-                "ev_ebitda": self._merge_first_non_empty(self._safe_number(valuation.get("ev_ebitda")), self._safe_number(yfinance_valuation.get("ev_ebitda"))),
-                "source": valuation_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
+            "market": {
+                "current_price": current_price,
+                "market_cap": market_cap,
+                "volume": volume,
+                "average_volume": average_volume,
+                "52_week_high": week_high,
+                "52_week_low": week_low,
+            },
+            "key_metrics": {
+                "earnings_per_share": avanza_metrics["eps"],
+                "revenue_per_share": avanza_metrics["revenue_per_share"],
+                "return_on_equity": avanza_metrics["roe"],
+                "net_debt_to_ebitda": avanza_metrics["net_debt_ebitda"],
+                "pe_ratio": avanza_metrics["pe"],
+                "ps_ratio": avanza_metrics["ps"],
+                "pb_ratio": avanza_metrics["pb"],
+                "ev_to_ebit": avanza_metrics["ev_ebit"],
+                "ev_to_ebitda": avanza_metrics["ev_ebitda"],
             },
             "profitability": {
-                "gross_margin": self._merge_first_non_empty(self._safe_number(profitability.get("gross_margin")), self._safe_number(yfinance_profitability.get("gross_margin"))),
-                "operating_margin": self._merge_first_non_empty(self._safe_number(profitability.get("operating_margin")), self._safe_number(yfinance_profitability.get("operating_margin"))),
-                "net_margin": self._merge_first_non_empty(self._safe_number(profitability.get("net_margin")), self._safe_number(yfinance_profitability.get("net_margin"))),
-                "roe": self._merge_first_non_empty(self._safe_number(profitability.get("roe")), self._safe_number(yfinance_profitability.get("roe"))),
-                "roic": self._merge_first_non_empty(self._safe_number(profitability.get("roi")), self._safe_number(yfinance_profitability.get("roic"))),
-                "source": profitability_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
+                "gross_margin": self._metric_point(yfinance_profitability.get("gross_margin"), finnhub_profitability.get("gross_margin")),
+                "operating_margin": self._metric_point(yfinance_profitability.get("operating_margin"), finnhub_profitability.get("operating_margin")),
+                "profit_margin": self._metric_point(yfinance_profitability.get("net_margin"), finnhub_profitability.get("net_margin")),
             },
             "growth": {
-                "revenue_growth": self._merge_first_non_empty(self._safe_number(growth.get("revenue_growth")), self._safe_number(yfinance_growth.get("revenue_growth"))),
-                "eps_growth": self._merge_first_non_empty(self._safe_number(growth.get("eps_growth")), self._safe_number(yfinance_growth.get("eps_growth"))),
-                "source": growth_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
-            },
-            "financial_strength": {
-                "cash": self._merge_first_non_empty(self._safe_number(strength.get("cash")), self._safe_number(yfinance_strength.get("cash"))),
-                "debt": self._merge_first_non_empty(self._safe_number(strength.get("debt")), self._safe_number(yfinance_strength.get("debt"))),
-                "debt_to_equity": self._merge_first_non_empty(self._safe_number(strength.get("debt_to_equity")), self._safe_number(yfinance_strength.get("debt_to_equity"))),
-                "current_ratio": self._merge_first_non_empty(self._safe_number(strength.get("current_ratio")), self._safe_number(yfinance_strength.get("current_ratio"))),
-                "source": strength_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
-            },
-            "cashflow": {
-                "operating_cash_flow": self._merge_first_non_empty(self._safe_number(strength.get("operating_cashflow")), self._safe_number(yfinance_cashflow.get("operating_cash_flow"))),
-                "free_cash_flow": self._merge_first_non_empty(self._safe_number(strength.get("free_cashflow")), self._safe_number(yfinance_cashflow.get("free_cash_flow"))),
-                "source": cashflow_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
+                "revenue_growth": self._metric_point(yfinance_growth.get("revenue_growth"), finnhub_growth.get("revenue_growth")),
+                "earnings_growth": self._metric_point(yfinance_growth.get("eps_growth"), finnhub_growth.get("eps_growth")),
             },
             "dividend": {
-                "yield": self._merge_first_non_empty(self._safe_number(dividend.get("dividend_yield")), self._safe_number(yfinance_dividend.get("yield"))),
-                "payout_ratio": self._merge_first_non_empty(self._safe_number(dividend.get("payout_ratio")), self._safe_number(yfinance_dividend.get("payout_ratio"))),
-                "source": dividend_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
+                "dividend_yield": self._metric_point(
+                    yfinance_dividend.get("yield") or self._deep_get(yfinance_data, "extra", "dividendYield"),
+                    finnhub_dividend.get("dividend_yield"),
+                ),
+                "dividend_rate": self._metric_point(
+                    yfinance_dividend.get("dividend_rate") or self._deep_get(yfinance_data, "extra", "dividendRate"),
+                    finnhub_dividend.get("dividend_rate"),
+                ),
+                "payout_ratio": self._metric_point(yfinance_dividend.get("payout_ratio"), finnhub_dividend.get("payout_ratio")),
             },
-            "analyst": {
-                "recommendation": recommendation,
-                "target_price": target_value,
-                "source": analyst_source,
-                "currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("currency")),
-                "reported_currency": self._merge_first_non_empty(profile.get("currency"), yfinance_company.get("reported_currency")),
+            "analyst_consensus": {
+                "strong_buy": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "strong_buy"), self._deep_get(finnhub_analyst, "recommendation", "strong_buy")),
+                "buy": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "buy"), self._deep_get(finnhub_analyst, "recommendation", "buy")),
+                "hold": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "hold"), self._deep_get(finnhub_analyst, "recommendation", "hold")),
+                "sell": self._metric_point(self._deep_get(yfinance_analyst, "recommendation", "sell"), self._deep_get(finnhub_analyst, "recommendation", "sell")),
+                "target_high_price": self._metric_point(self._deep_get(yfinance_analyst, "target_price", "high") or yfinance_analyst.get("targetHighPrice"), self._deep_get(finnhub_analyst, "target_price", "high") or finnhub_analyst.get("targetHighPrice")),
+                "target_mean_price": self._metric_point(
+                    yfinance_analyst.get("target_price") if not isinstance(yfinance_analyst.get("target_price"), dict) else self._deep_get(yfinance_analyst, "target_price", "average"),
+                    finnhub_analyst.get("target_price") if not isinstance(finnhub_analyst.get("target_price"), dict) else self._deep_get(finnhub_analyst, "target_price", "average"),
+                ),
+                "target_low_price": self._metric_point(self._deep_get(yfinance_analyst, "target_price", "low") or yfinance_analyst.get("targetLowPrice"), self._deep_get(finnhub_analyst, "target_price", "low") or finnhub_analyst.get("targetLowPrice")),
             },
-            "screenshots": [str(path.name if hasattr(path, 'name') else path) for path in (screenshots or [])],
         }
 
-    async def run(self, ticker: str, screenshots: list[Path | str] | None = None) -> dict[str, Any]:
-        output_folder = self.storage_service.create_capture_folder(ticker)
+    async def run(
+        self,
+        ticker: str,
+        screenshots: list[Path | str] | None = None,
+        output_folder: Path | None = None,
+    ) -> dict[str, Any]:
+        output_folder = output_folder or self.storage_service.create_capture_folder(ticker)
         screenshots = screenshots or []
 
         try:

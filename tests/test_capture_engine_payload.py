@@ -62,6 +62,12 @@ class CaptureEnginePayloadTests(unittest.TestCase):
             },
             yfinance_data={
                 "price": {"current_price": 200},
+                "company": {"name": "ABB Ltd", "ticker": "ABB.ST"},
+                "fundamentals": {
+                    "valuation": {"pe": 19, "ps": 1.8, "pb": 2.2, "ev_ebit": 11},
+                    "profitability": {"roe": 0.17},
+                    "analyst": {"recommendation": {"buy": 3}, "target_price": 260},
+                },
                 "financial_statements": {
                     "balance_sheet": {"cash": 5000000, "debt": 2000000},
                     "cash_flow": {
@@ -74,23 +80,24 @@ class CaptureEnginePayloadTests(unittest.TestCase):
             screenshots=["daily.png"],
         )
 
-        self.assertEqual(payload["ticker"], "ABB.ST")
         self.assertEqual(payload["search_name"], "ABB.ST")
         self.assertIn("created_at", payload)
         self.assertEqual(payload["data_sources"], ["finnhub", "yfinance"])
         self.assertEqual(payload["yahoo_collected_dataset"]["extra"]["dividendRate"], 6.0)
-        self.assertEqual(payload["company"]["name"], "ABB Ltd")
-        self.assertEqual(payload["company"]["ticker"], "ABB.ST")
-        self.assertIn("valuation", payload)
-        self.assertIn("profitability", payload)
-        self.assertIn("growth", payload)
-        self.assertIn("financial_strength", payload)
-        self.assertIn("cashflow", payload)
-        self.assertIn("dividend", payload)
-        self.assertIn("analyst", payload)
-        self.assertNotIn("news", payload)
-        self.assertNotIn("risks", payload)
-        self.assertEqual(payload["screenshots"], ["daily.png"])
+        self.assertEqual(payload["company"]["name"], {"value": "ABB Ltd", "source": "yfinance"})
+        self.assertEqual(payload["company"]["ticker"], {"value": "ABB.ST", "source": "yfinance"})
+        self.assertEqual(payload["market"]["current_price"], {"value": 200, "source": "yfinance"})
+        self.assertEqual(payload["market"]["market_cap"], {"value": 1000000000, "source": "finnhub"})
+        self.assertEqual(payload["key_metrics"]["pe_ratio"], {"value": 19, "source": "yfinance"})
+        self.assertEqual(payload["key_metrics"]["return_on_equity"], {"value": 0.17, "source": "yfinance"})
+        self.assertEqual(payload["analyst_consensus"]["buy"], {"value": 3, "source": "yfinance"})
+        self.assertEqual(payload["analyst_consensus"]["target_mean_price"], {"value": 260, "source": "yfinance"})
+        self.assertEqual(payload["profitability"]["gross_margin"], {"value": 0.4, "source": "finnhub"})
+        self.assertEqual(payload["growth"]["revenue_growth"], {"value": 0.12, "source": "finnhub"})
+        self.assertEqual(payload["dividend"]["dividend_yield"], {"value": 0.03, "source": "yfinance"})
+        self.assertEqual(payload["dividend"]["dividend_rate"], {"value": 6.0, "source": "yfinance"})
+        self.assertNotIn("historical_ohlcv", payload["yahoo_collected_dataset"])
+        self.assertNotIn("historical_ohlcv", payload["yahoo_collected_dataset"])
 
     def test_uses_yfinance_fields_when_finnhub_is_empty(self) -> None:
         engine = CaptureEngine()
@@ -152,19 +159,18 @@ class CaptureEnginePayloadTests(unittest.TestCase):
             screenshots=["daily.png"],
         )
 
-        self.assertEqual(payload["company"]["name"], "ABB Ltd")
-        self.assertEqual(payload["company"]["currency"], "SEK")
-        self.assertEqual(payload["company"]["reported_currency"], "USD")
-        self.assertEqual(payload["valuation"]["pe"], 20)
-        self.assertEqual(payload["valuation"]["pb"], 2.5)
-        self.assertEqual(payload["valuation"]["ps"], 2.0)
-        self.assertEqual(payload["valuation"]["ev_ebitda"], 12)
-        self.assertEqual(payload["profitability"]["roe"], 0.18)
-        self.assertEqual(payload["financial_strength"]["debt"], 2000000)
-        self.assertEqual(payload["cashflow"]["free_cash_flow"], 3000000)
-        self.assertEqual(payload["dividend"]["yield"], 0.03)
-        self.assertEqual(payload["analyst"]["target_price"], 250)
+        self.assertEqual(payload["company"]["name"], {"value": "ABB Ltd", "source": "yfinance"})
+        self.assertEqual(payload["company"]["currency"], {"value": "SEK", "source": "yfinance"})
+        self.assertEqual(payload["market"]["current_price"], {"value": None, "source": None})
+        self.assertEqual(payload["key_metrics"]["pe_ratio"], {"value": 20, "source": "yfinance"})
+        self.assertEqual(payload["key_metrics"]["pb_ratio"], {"value": 2.5, "source": "yfinance"})
+        self.assertEqual(payload["key_metrics"]["ev_to_ebitda"], {"value": 12, "source": "yfinance"})
+        self.assertEqual(payload["profitability"]["profit_margin"], {"value": 0.15, "source": "yfinance"})
+        self.assertEqual(payload["dividend"]["dividend_yield"], {"value": 0.03, "source": "yfinance"})
+        self.assertEqual(payload["analyst_consensus"]["target_mean_price"], {"value": 250, "source": "yfinance"})
         self.assertEqual(payload["data_sources"], ["yfinance"])
+        self.assertEqual(payload["key_metrics"]["earnings_per_share"], {"value": None, "source": None})
+        self.assertEqual(payload["analyst_consensus"]["target_high_price"], {"value": None, "source": None})
 
     def test_omits_finnhub_from_data_sources_when_empty(self) -> None:
         engine = CaptureEngine()
@@ -179,6 +185,7 @@ class CaptureEnginePayloadTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["data_sources"], ["yfinance"])
+        self.assertEqual(payload["key_metrics"]["return_on_equity"], {"value": None, "source": None})
 
 
 if __name__ == "__main__":

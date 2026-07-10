@@ -77,6 +77,24 @@ class YahooFinanceTickerResolutionTests(unittest.TestCase):
                 self.assertEqual(raw["data_completeness"]["fields_total"], 46)
                 self.assertEqual(raw["data_completeness"]["fields_found"], 26)
                 self.assertEqual(raw["data_completeness"]["percent"], 56.52)
+                self.assertNotIn("historical_ohlcv", payload)
+
+    def test_collect_does_not_export_long_history(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_path = Path(tmpdir) / "symbol_cache.json"
+            with patch("src.snappershot.collectors.yfinance_client.yf.Ticker") as ticker_cls:
+                ticker_instance = MagicMock()
+                ticker_instance.info = {
+                    "longName": "ABB Ltd",
+                    "symbol": "ABB.ST",
+                }
+                ticker_cls.return_value = ticker_instance
+
+                client = YahooFinanceClient(symbol_resolver=SymbolResolver(cache_path=cache_path))
+
+                payload = client.collect("ABB")
+
+                self.assertNotIn("historical_ohlcv", payload)
 
 
 if __name__ == "__main__":
