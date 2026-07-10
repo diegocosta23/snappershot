@@ -5,14 +5,29 @@ from typing import Any
 
 import yfinance as yf
 
+from ..symbols.symbol_resolver import SymbolResolver
+
 log = logging.getLogger(__name__)
 
 
 class YahooFinanceClient:
     """Collect OHLCV, statements, and extra market data from Yahoo Finance."""
 
-    def __init__(self, timeout: int = 20) -> None:
+    def __init__(self, timeout: int = 20, symbol_resolver: SymbolResolver | None = None) -> None:
         self.timeout = timeout
+        self.symbol_resolver = symbol_resolver or SymbolResolver()
+
+    def _resolve_ticker(self, symbol: str) -> str:
+        lookup = str(symbol).strip()
+        if not lookup:
+            return lookup
+
+        resolved = self.symbol_resolver.resolve(lookup)
+        if resolved and resolved != lookup:
+            log.info("Resolved %s -> %s", lookup, resolved)
+            return resolved
+
+        return lookup
 
     def _safe_get(self, info: dict[str, Any], key: str, default: Any = None) -> Any:
         return info.get(key, default) if isinstance(info, dict) else default
@@ -37,7 +52,8 @@ class YahooFinanceClient:
         return rows
 
     def collect(self, symbol: str) -> dict[str, Any]:
-        ticker = yf.Ticker(symbol)
+        resolved_symbol = self._resolve_ticker(symbol)
+        ticker = yf.Ticker(resolved_symbol)
         info = getattr(ticker, "info", {}) or {}
 
         price = {
