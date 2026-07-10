@@ -14,6 +14,7 @@ except ImportError:  # pragma: no cover - optional on non-Windows platforms
 
 from ..controller.capture_pipeline import CapturePipeline
 from ..models.capture_result import CaptureResult
+from ..services.provider_symbols import ProviderSymbolMapper
 from ..symbols.symbol_resolver import SymbolResolver
 
 log = logging.getLogger(__name__)
@@ -37,6 +38,8 @@ class MainController:
         self.capture_pipeline = CapturePipeline(log_callback=self._append_log)
         self.company_service = self.capture_pipeline.company_service
         self.symbol_resolver = SymbolResolver()
+        self.provider_symbols = ProviderSymbolMapper()
+        self._selected_provider_symbols: dict[str, str] = {}
 
         if view is not None:
             self.bind_view(view)
@@ -229,6 +232,11 @@ class MainController:
     def handle_company_selected(self, company_text: str) -> None:
         normalized = self._company_label(company_text)
         self._call_view("set_company_text", normalized)
+        matches = self.symbol_resolver.search(normalized)
+        if matches:
+            self._selected_provider_symbols = self.provider_symbols.translate(matches[0].get("symbol", ""))
+        else:
+            self._selected_provider_symbols = {}
 
     def handle_capture_requested(self) -> None:
         archive_name = self._normalize_company_name(self.current_company_text())
@@ -246,7 +254,11 @@ class MainController:
         self._process_events()
 
         try:
-            result = self.capture_pipeline.capture_company(archive_name, timeframes)
+            result = self.capture_pipeline.capture_company(
+                archive_name,
+                timeframes,
+                self._selected_provider_symbols.get("tradingview_symbol"),
+            )
             self._apply_capture_result(result)
         except Exception as exc:
             log.exception("Capture misslyckades med undantag: %s", exc)
@@ -324,6 +336,7 @@ class MainController:
     def handle_clear_requested(self) -> None:
         self._call_view("set_company_text", "")
         self._call_view("set_company_results", [])
+        self._selected_provider_symbols = {}
         self._set_result(None, None)
         self._set_status("Redo")
         self._set_progress(0)

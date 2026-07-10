@@ -74,9 +74,6 @@ class CapturePipeline:
         return zip_inputs
 
     def _show_symbol_selection_dialog(self) -> bool:
-        """
-        Visar dialogen som låter användaren fortsätta när symbolen är vald.
-        """
         dialog = QMessageBox()
         dialog.setWindowTitle("SnapperShot")
         dialog.setIcon(QMessageBox.Icon.Information)
@@ -100,10 +97,6 @@ class CapturePipeline:
         return dialog.clickedButton() == continue_button
 
     def _stabilize_chart_state(self, company_name: str) -> CaptureResult | None:
-        """
-        Försöker få TradingView tillbaka till chart-läge efter att användaren
-        har valt rätt aktie i Symbol Search.
-        """
         focus = self.window.focus()
         if not focus.ok:
             return CaptureResult.failed(
@@ -150,10 +143,8 @@ class CapturePipeline:
         self,
         company_name: str,
         timeframes: list[str] | None = None,
+        tradingview_symbol: str | None = None,
     ) -> CaptureResult:
-        """
-        Kör hela capture-processen för ett företag.
-        """
         self._log(f"Förbereder capture för: {company_name}")
 
         self._log("Förbereder TradingView...")
@@ -164,20 +155,23 @@ class CapturePipeline:
                 company_name=company_name,
             )
 
-        self._log("Öppnar Symbol Search...")
-        search_result = self.search.open_symbol_search()
-        if not search_result.ok:
-            return CaptureResult.failed(
-                f"Could not open Symbol Search: {search_result.message}",
-                company_name=company_name,
-            )
+        if tradingview_symbol and self.search.is_symbol_already_open(tradingview_symbol):
+            self._log(f"TradingView har redan rätt symbol: {tradingview_symbol}")
+        else:
+            self._log("Öppnar Symbol Search...")
+            search_result = self.search.open_and_select_symbol(tradingview_symbol or company_name)
+            if not search_result.ok:
+                return CaptureResult.failed(
+                    f"Could not open Symbol Search: {search_result.message}",
+                    company_name=company_name,
+                )
 
-        self._log("Väntar på att du väljer aktie...")
-        if not self._show_symbol_selection_dialog():
-            return CaptureResult.failed(
-                "Capture cancelled.",
-                company_name=company_name,
-            )
+            self._log("Väntar på att du väljer aktie...")
+            if not self._show_symbol_selection_dialog():
+                return CaptureResult.failed(
+                    "Capture cancelled.",
+                    company_name=company_name,
+                )
 
         chart_state = self._stabilize_chart_state(company_name)
         if chart_state is not None:

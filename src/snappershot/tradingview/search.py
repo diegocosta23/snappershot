@@ -62,6 +62,37 @@ class TradingViewSearch:
             log.warning("Kunde inte skicka '/': %s", exc)
             return StepOutcome.fail(f"Kunde inte skicka '/' : {exc}")
 
+    def _current_chart_title(self) -> str:
+        try:
+            return self.window.title()
+        except Exception:
+            return ""
+
+    def _normalize_symbol(self, symbol: str) -> str:
+        return str(symbol or "").replace("OMXSTO:", "").replace("NASDAQ:", "").replace(" ", "").replace("-", "_").casefold()
+
+    def is_symbol_already_open(self, symbol: str) -> bool:
+        title = self._current_chart_title()
+        wanted = self._normalize_symbol(symbol)
+        if not title or not wanted:
+            return False
+        return wanted in self._normalize_symbol(title)
+
+    def open_and_select_symbol(self, symbol: str) -> StepOutcome:
+        if self.is_symbol_already_open(symbol):
+            return StepOutcome.success("Rätt symbol är redan öppen.")
+
+        search_result = self.open_symbol_search()
+        if not search_result.ok:
+            return search_result
+
+        try:
+            pyautogui.write(symbol, interval=0.04)
+            pyautogui.press("enter")
+            return StepOutcome.success(f"Symbol vald: {symbol}")
+        except Exception as exc:
+            return StepOutcome.fail(f"Kunde inte välja symbol {symbol}: {exc}")
+
     def open_symbol_search(self) -> StepOutcome:
         """
         Öppnar TradingViews Symbol Search.
@@ -148,9 +179,7 @@ class TradingViewSearch:
         )
 
     def search(self, ticker: str) -> StepOutcome:
-        _ = ticker
-        return self.open_symbol_search()
+        return self.open_and_select_symbol(ticker)
 
     def search_and_select_first(self, ticker: str) -> StepOutcome:
-        _ = ticker
-        return self.open_symbol_search()
+        return self.open_and_select_symbol(ticker)
