@@ -150,6 +150,12 @@ class MainController:
 
         return "\n".join(part for part in (name, symbol, exchange) if part)
 
+    def _company_label(self, text: str) -> str:
+        cleaned = str(text or "").strip()
+        if not cleaned:
+            return ""
+        return cleaned.splitlines()[0].strip()
+
     def search_companies(self, query: str) -> list[str]:
         """
         Returnerar matchande företag som strängar för UI:t.
@@ -221,7 +227,7 @@ class MainController:
         self._update_company_results_for_query(text)
 
     def handle_company_selected(self, company_text: str) -> None:
-        normalized = self._normalize_company_name(company_text)
+        normalized = self._company_label(company_text)
         self._call_view("set_company_text", normalized)
 
     def handle_capture_requested(self) -> None:

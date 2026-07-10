@@ -7,9 +7,13 @@ from src.snappershot.controller.main_controller import MainController
 class _ViewStub:
     def __init__(self) -> None:
         self.results = None
+        self.company_text = None
 
     def set_company_results(self, results) -> None:
         self.results = results
+
+    def set_company_text(self, text) -> None:
+        self.company_text = text
 
 
 class MainControllerSearchTests(unittest.TestCase):
@@ -37,6 +41,23 @@ class MainControllerSearchTests(unittest.TestCase):
             view.results,
             ["Investor AB ser. B\nINVE-B.ST\nNasdaq Stockholm"],
         )
+
+    def test_company_selected_uses_display_name_only(self) -> None:
+        view = _ViewStub()
+
+        with patch("src.snappershot.controller.main_controller.CapturePipeline") as pipeline_cls, patch(
+            "src.snappershot.controller.main_controller.SymbolResolver"
+        ) as resolver_cls:
+            pipeline = MagicMock()
+            pipeline.company_service = MagicMock()
+            pipeline.window = MagicMock()
+            pipeline_cls.return_value = pipeline
+            resolver_cls.return_value = MagicMock()
+
+            controller = MainController(view)
+            controller.handle_company_selected("Investor AB ser. B\nINVE-B.ST\nNasdaq Stockholm")
+
+        self.assertEqual(view.company_text, "Investor AB ser. B")
 
 
 if __name__ == "__main__":
