@@ -29,14 +29,13 @@ def resource_path(*parts: str) -> Path:
 def env_file_candidates() -> list[Path]:
     candidates: list[Path] = []
 
-    cwd_env = Path.cwd() / ".env"
-    candidates.append(cwd_env)
+    candidates.append(Path.cwd() / ".env")
+    candidates.append(Path(__file__).resolve().parents[3] / ".env")
 
     if getattr(sys, "frozen", False):
-        exe_env = Path(sys.executable).resolve().with_name(".env")
-        candidates.append(exe_env)
-    else:
-        candidates.append(Path(__file__).resolve().parents[3] / ".env")
+        exe_path = Path(sys.executable).resolve()
+        candidates.append(exe_path.with_name(".env"))
+        candidates.append(base_dir() / ".env")
 
     unique: list[Path] = []
     for candidate in candidates:

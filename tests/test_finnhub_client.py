@@ -1,3 +1,4 @@
+import sys
 import os
 import tempfile
 import unittest
@@ -5,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src.snappershot.collectors.finnhub_client import FinnhubClient
+from src.snappershot.utils.runtime_paths import env_file_candidates
 
 
 class FinnhubClientTests(unittest.TestCase):
@@ -37,6 +39,20 @@ class FinnhubClientTests(unittest.TestCase):
                     os.chdir(old_cwd)
 
             self.assertEqual(client.api_key, "from_env_var")
+
+    def test_frozen_env_candidates_include_exe_folder_and_bundle_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exe = Path(tmpdir) / "SnapperShot.exe"
+            with patch.object(sys, "frozen", True, create=True), patch.object(sys, "executable", str(exe)), patch(
+                "src.snappershot.utils.runtime_paths.base_dir",
+                return_value=Path(tmpdir) / "_MEIPASS",
+            ), patch("pathlib.Path.cwd", return_value=Path(tmpdir)):
+                candidates = env_file_candidates()
+
+        self.assertIn(Path(tmpdir) / ".env", candidates)
+        self.assertIn(Path(__file__).resolve().parents[1] / ".env", candidates)
+        self.assertIn(exe.with_name(".env"), candidates)
+        self.assertIn(Path(tmpdir) / "_MEIPASS" / ".env", candidates)
 
     def test_collects_analyst_and_fallback_metrics(self) -> None:
         def fake_get(url, params=None, timeout=None):  # noqa: ANN001
