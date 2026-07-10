@@ -5,6 +5,7 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+from datetime import datetime, timezone
 
 from .collectors.finnhub_client import FinnhubClient
 from .collectors.yfinance_client import YahooFinanceClient
@@ -31,6 +32,16 @@ class CaptureEngine:
         if self._safe_number(primary) not in (None, {}, []) and primary != {}:
             return primary
         return fallback
+
+    def _has_meaningful_data(self, data: Any) -> bool:
+        if not isinstance(data, dict):
+            return self._safe_number(data) is not None
+        for value in data.values():
+            if self._safe_number(value) is not None:
+                return True
+            if isinstance(value, dict) and any(self._safe_number(item) is not None for item in value.values()):
+                return True
+        return False
 
     def _build_analysis_payload(
         self,
@@ -73,7 +84,17 @@ class CaptureEngine:
         dividend_source = "finnhub" if self._safe_number(dividend.get("dividend_yield")) is not None else "yfinance"
         analyst_source = "finnhub" if self._safe_number(analyst.get("recommendation")) is not None else "yfinance"
 
+        data_sources = []
+        if self._has_meaningful_data(finnhub_data):
+            data_sources.append("finnhub")
+        if self._has_meaningful_data(yfinance_data):
+            data_sources.append("yfinance")
+
         return {
+            "search_name": ticker,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "data_sources": data_sources,
+            "yahoo_collected_dataset": yfinance_data,
             "ticker": ticker,
             "company": {
                 "name": self._merge_first_non_empty(profile.get("company_name") or profile.get("name") or None, yfinance_company.get("name") or ticker),

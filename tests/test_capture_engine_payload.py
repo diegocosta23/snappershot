@@ -75,6 +75,10 @@ class CaptureEnginePayloadTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["ticker"], "ABB.ST")
+        self.assertEqual(payload["search_name"], "ABB.ST")
+        self.assertIn("created_at", payload)
+        self.assertEqual(payload["data_sources"], ["finnhub", "yfinance"])
+        self.assertEqual(payload["yahoo_collected_dataset"]["extra"]["dividendRate"], 6.0)
         self.assertEqual(payload["company"]["name"], "ABB Ltd")
         self.assertEqual(payload["company"]["ticker"], "ABB.ST")
         self.assertIn("valuation", payload)
@@ -160,6 +164,21 @@ class CaptureEnginePayloadTests(unittest.TestCase):
         self.assertEqual(payload["cashflow"]["free_cash_flow"], 3000000)
         self.assertEqual(payload["dividend"]["yield"], 0.03)
         self.assertEqual(payload["analyst"]["target_price"], 250)
+        self.assertEqual(payload["data_sources"], ["yfinance"])
+
+    def test_omits_finnhub_from_data_sources_when_empty(self) -> None:
+        engine = CaptureEngine()
+        payload = engine._build_analysis_payload(
+            ticker="ABB.ST",
+            finnhub_data={},
+            yfinance_data={
+                "company": {"name": "ABB Ltd", "ticker": "ABB.ST"},
+                "fundamentals": {},
+            },
+            screenshots=[],
+        )
+
+        self.assertEqual(payload["data_sources"], ["yfinance"])
 
 
 if __name__ == "__main__":
