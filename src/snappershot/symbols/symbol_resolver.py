@@ -7,12 +7,14 @@ from typing import Any
 
 from yfinance.search import Search
 
+from ..utils.runtime_paths import app_data_dir
+
 log = logging.getLogger(__name__)
 
 
 class SymbolResolver:
     def __init__(self, cache_path: str | Path | None = None) -> None:
-        self.cache_path = Path(cache_path or Path(__file__).resolve().parent / "symbol_cache.json")
+        self.cache_path = Path(cache_path or app_data_dir() / "symbol_cache.json")
         self.cache: dict[str, dict[str, Any]] = {}
         self._load_cache()
 

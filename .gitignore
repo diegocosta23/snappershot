@@ -17,3 +17,7 @@ output/
 
 .env
 !.env.example
+
+build/
+dist/
+*.spec

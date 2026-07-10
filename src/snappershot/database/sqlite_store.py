@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ..utils.runtime_paths import app_data_dir
+
 log = logging.getLogger(__name__)
 
 
@@ -13,7 +15,7 @@ class SQLiteStore:
     """Persist capture events and analysis payloads in SQLite."""
 
     def __init__(self, db_path: str | Path | None = None) -> None:
-        self.db_path = Path(db_path or Path(__file__).resolve().parent.parent / "data" / "capture.db")
+        self.db_path = Path(db_path or app_data_dir() / "capture.db")
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
