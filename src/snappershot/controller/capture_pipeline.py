@@ -240,12 +240,25 @@ class CapturePipeline:
                 self._log(f"Yahoo Finance collection warning: {exc}")
                 yfinance_data = {}
 
+        chart_dir = output_folder / "charts"
+        chart_dir.mkdir(parents=True, exist_ok=True)
+        chart_files: list[Path] = []
+        for screenshot in screenshots:
+            target = chart_dir / screenshot.name
+            if screenshot.exists() and screenshot != target:
+                try:
+                    screenshot.replace(target)
+                except Exception:
+                    target.write_bytes(screenshot.read_bytes())
+                    screenshot.unlink(missing_ok=True)
+            chart_files.append(target)
+
         try:
             self._log("Startar insamling av rå fundamentdata...")
             asyncio.run(
                 capture_engine.run(
                     company_name,
-                    screenshots=screenshots,
+                    screenshots=chart_files,
                     output_folder=output_folder,
                 )
             )
@@ -259,7 +272,8 @@ class CapturePipeline:
         try:
             created_zip = self.zip_service.create_zip(
                 zip_path,
-                self._build_zip_inputs(screenshots, output_folder),
+                self._build_zip_inputs(chart_files, output_folder),
+                base_dir=output_folder,
             )
         except Exception as exc:
             return CaptureResult.failed(
