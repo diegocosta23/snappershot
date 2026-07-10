@@ -152,14 +152,14 @@ class FinancialSnapshotBuilder:
                 self._deep_get(finnhub_data, "fundamentals", "profitability", "eps"),
                 "finnhub",
             ),
-            "revenue_per_share": self._point(self._deep_get(yfinance_company, "revenue_per_share"), "yfinance", self._deep_get(profile, "revenue_per_share"), "finnhub"),
+            "revenue_per_share": self._point(self._deep_get(yfinance_company, "revenue_per_share"), "yfinance", self._deep_get(finnhub_profitability, "revenue_per_share") or self._deep_get(profile, "revenue_per_share"), "finnhub"),
             "return_on_equity": self._point(self._deep_get(yfinance_profitability, "roe"), "yfinance", self._deep_get(finnhub_profitability, "roe"), "finnhub"),
             "net_debt_to_ebitda": self._point(self._deep_get(yfinance_fundamentals, "financial_strength", "net_debt_to_ebitda") or self._deep_get(yfinance_fundamentals, "financial_strength", "debt_to_ebitda"), "yfinance", self._deep_get(finnhub_data, "fundamentals", "financial_strength", "net_debt_to_ebitda") or self._deep_get(finnhub_data, "fundamentals", "financial_strength", "debt_to_ebitda"), "finnhub"),
             "pe_ratio": self._point(self._deep_get(yfinance_valuation, "pe"), "yfinance", self._deep_get(valuation, "pe"), "finnhub"),
             "forward_pe": self._point(self._deep_get(yfinance_valuation, "forward_pe"), "yfinance", self._deep_get(valuation, "forward_pe"), "finnhub"),
             "ps_ratio": self._point(self._deep_get(yfinance_valuation, "ps"), "yfinance", self._deep_get(valuation, "ps"), "finnhub"),
             "pb_ratio": self._point(self._deep_get(yfinance_valuation, "pb"), "yfinance", self._deep_get(valuation, "pb"), "finnhub"),
-            "ev_to_ebit": self._point(self._deep_get(yfinance_valuation, "ev_ebit"), "yfinance", self._deep_get(valuation, "ev_ebit"), "finnhub"),
+            "ev_to_ebit": self._point(self._deep_get(yfinance_valuation, "ev_ebit"), "yfinance", self._deep_get(valuation, "ev_to_ebit") or self._deep_get(valuation, "ev_ebit"), "finnhub"),
             "ev_to_ebitda": self._point(self._deep_get(yfinance_valuation, "ev_ebitda"), "yfinance", self._deep_get(valuation, "ev_ebitda"), "finnhub"),
         }
 

@@ -24,3 +24,22 @@ def app_data_dir() -> Path:
 
 def resource_path(*parts: str) -> Path:
     return base_dir().joinpath(*parts)
+
+
+def env_file_candidates() -> list[Path]:
+    candidates: list[Path] = []
+
+    cwd_env = Path.cwd() / ".env"
+    candidates.append(cwd_env)
+
+    if getattr(sys, "frozen", False):
+        exe_env = Path(sys.executable).resolve().with_name(".env")
+        candidates.append(exe_env)
+    else:
+        candidates.append(Path(__file__).resolve().parents[3] / ".env")
+
+    unique: list[Path] = []
+    for candidate in candidates:
+        if candidate not in unique:
+            unique.append(candidate)
+    return unique

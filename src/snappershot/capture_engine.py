@@ -10,6 +10,7 @@ from .collectors.finnhub_client import FinnhubClient
 from .collectors.yfinance_client import YahooFinanceClient
 from .database.sqlite_store import SQLiteStore
 from .exports.package_export import build_analysis_package
+from .services.provider_symbols import ProviderSymbolMapper
 from .services.financial_snapshot_builder import FinancialSnapshotBuilder
 from .services.storage_service import StorageService
 
@@ -25,6 +26,7 @@ class CaptureEngine:
         self.yfinance = YahooFinanceClient()
         self.store = SQLiteStore()
         self.snapshot_builder = FinancialSnapshotBuilder()
+        self.provider_symbols = ProviderSymbolMapper()
 
     def _build_analysis_payload(
         self,
@@ -34,9 +36,10 @@ class CaptureEngine:
         screenshots: list[Path | str] | None = None,
     ) -> dict[str, Any]:
         _ = screenshots
+        provider_symbols = self.provider_symbols.translate(self.yfinance._resolve_ticker(ticker))
         return self.snapshot_builder.build(
             search_name=ticker,
-            resolved_ticker=ticker,
+            resolved_ticker=provider_symbols["yahoo_symbol"],
             finnhub_data=finnhub_data,
             yfinance_data=yfinance_data,
         )
@@ -51,8 +54,9 @@ class CaptureEngine:
         screenshots = screenshots or []
 
         try:
-            finnhub_task = asyncio.to_thread(self.finnhub.collect, ticker)
-            yfinance_task = asyncio.to_thread(self.yfinance.collect, ticker)
+            provider_symbols = self.provider_symbols.translate(self.yfinance._resolve_ticker(ticker))
+            finnhub_task = asyncio.to_thread(self.finnhub.collect, provider_symbols["finnhub_symbol"])
+            yfinance_task = asyncio.to_thread(self.yfinance.collect, provider_symbols["yahoo_symbol"])
 
             finnhub_data, yfinance_data = await asyncio.gather(
                 finnhub_task,
