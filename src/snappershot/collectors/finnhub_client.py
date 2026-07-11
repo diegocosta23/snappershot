@@ -20,10 +20,34 @@ class FinnhubClient:
         self.api_key = api_key or os.getenv("FINNHUB_API_KEY", "")
         self.timeout = timeout
         self.base_url = "https://finnhub.io/api/v1"
+        self.last_diagnostics = self._new_diagnostics()
         log.info("Finnhub enabled: %s", "YES" if self.api_key else "NO")
+
+    def _new_diagnostics(self, symbol: str = "") -> dict[str, Any]:
+        return {
+            "enabled": bool(self.api_key),
+            "symbol": symbol,
+            "response_count": 0,
+            "fields_collected": 0,
+            "errors": [],
+        }
+
+    @staticmethod
+    def _count_fields(value: Any) -> int:
+        if isinstance(value, dict):
+            return sum(FinnhubClient._count_fields(item) for item in value.values())
+        if isinstance(value, list):
+            return sum(FinnhubClient._count_fields(item) for item in value)
+        return int(value not in (None, ""))
+
+    def _record_error(self, endpoint: str, reason: str) -> None:
+        message = f"{endpoint}: {reason}"
+        if message not in self.last_diagnostics["errors"]:
+            self.last_diagnostics["errors"].append(message)
 
     def _request(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         if not self.api_key:
+            self._record_error("configuration", "FINNHUB_API_KEY is not configured")
             raise RuntimeError("FINNHUB_API_KEY is not configured.")
 
         try:
@@ -33,14 +57,19 @@ class FinnhubClient:
                 timeout=self.timeout,
             )
             if response.status_code == 403:
+                self._record_error(endpoint, "HTTP 403 (unsupported market or plan)")
                 log.warning("Finnhub %s returned 403 (unsupported market); continuing with fallback data", endpoint)
                 return {}
             if response.status_code >= 400:
+                self._record_error(endpoint, f"HTTP {response.status_code}")
                 log.warning("Finnhub %s failed: %s %s", endpoint, response.status_code, response.text[:300])
                 return {}
-            return response.json()
+            payload = response.json()
+            self.last_diagnostics["response_count"] += 1
+            return payload
         except requests.RequestException as exc:
-            log.warning("Finnhub request failed for %s: %s", endpoint, exc)
+            self._record_error(endpoint, f"request failed ({type(exc).__name__})")
+            log.warning("Finnhub request failed for %s: %s", endpoint, type(exc).__name__)
             return {}
 
     def get_company_profile(self, symbol: str) -> dict[str, Any]:
@@ -118,9 +147,12 @@ class FinnhubClient:
         }
 
     def collect(self, symbol: str) -> dict[str, Any]:
+        self.last_diagnostics = self._new_diagnostics(symbol)
         profile = self.get_company_profile(symbol)
         fundamentals = self.get_fundamental_metrics(symbol)
-        return {
+        payload = {
             "profile": profile,
             "fundamentals": fundamentals,
         }
+        self.last_diagnostics["fields_collected"] = self._count_fields(payload)
+        return payload
