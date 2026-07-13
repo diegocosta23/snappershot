@@ -165,16 +165,14 @@ class CapturePipeline:
                 self._log(f"✓ Klar: {timeframe}")
 
             try:
-                finnhub_data = finnhub_future.result(timeout=60)
+                finnhub_future.result(timeout=60)
             except Exception as exc:
                 self._log(f"Finnhub collection warning: {exc}")
-                finnhub_data = {}
 
             try:
-                yfinance_data = yfinance_future.result(timeout=60)
+                yfinance_future.result(timeout=60)
             except Exception as exc:
                 self._log(f"Yahoo Finance collection warning: {exc}")
-                yfinance_data = {}
 
         chart_dir = output_folder / "charts"
         chart_dir.mkdir(parents=True, exist_ok=True)
@@ -218,16 +216,24 @@ class CapturePipeline:
             )
 
         if not created_zip.exists():
-            return CaptureResult.failed("ZIP filen skapades inte.", company_name=company_name)
+            return CaptureResult.failed(
+                "ZIP filen skapades inte.", company_name=company_name
+            )
 
         try:
             if created_zip.stat().st_size <= 0:
-                return CaptureResult.failed("ZIP filen är tom.", company_name=company_name)
+                return CaptureResult.failed(
+                    "ZIP filen är tom.", company_name=company_name
+                )
         except Exception as exc:
-            return CaptureResult.failed(f"Could not verify ZIP: {exc}", company_name=company_name)
+            return CaptureResult.failed(
+                f"Could not verify ZIP: {exc}", company_name=company_name
+            )
 
         if not zipfile.is_zipfile(created_zip):
-            return CaptureResult.failed("ZIP filen är korrupt.", company_name=company_name)
+            return CaptureResult.failed(
+                "ZIP filen är korrupt.", company_name=company_name
+            )
 
         self._log(f"✓ ZIP klar: {created_zip.name}")
 
