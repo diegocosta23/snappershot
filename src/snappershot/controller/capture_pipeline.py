@@ -182,13 +182,13 @@ class CapturePipeline:
                 finnhub_future.result(timeout=60)
             except Exception as exc:
                 self._log(f"Finnhub collection warning: {exc}")
-                finnhub_data = {}
+
 
             try:
                 yfinance_future.result(timeout=60)
             except Exception as exc:
                 self._log(f"Yahoo Finance collection warning: {exc}")
-                yfinance_data = {}
+
 
         chart_dir = output_folder / "charts"
         chart_dir.mkdir(parents=True, exist_ok=True)

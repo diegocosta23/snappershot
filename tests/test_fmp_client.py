@@ -26,7 +26,7 @@ class FMPClientTests(unittest.TestCase):
     def test_collects_raw_fmp_fundamentals(self) -> None:
         def fake_get(url, params=None, timeout=None):  # noqa: ANN001
             response = MagicMock()
-            if url.endswith("/stable/profile/INVE-B.ST"):
+            if url.endswith("/stable/profile") and params["symbol"] == "INVE-B.ST":
                 response.status_code = 200
                 response.json.return_value = [
                     {
@@ -42,20 +42,20 @@ class FMPClientTests(unittest.TestCase):
                         "lastDiv": 5.5,
                     }
                 ]
-            elif url.endswith("/stable/income-statement/INVE-B.ST"):
+            elif url.endswith("/stable/income-statement") and params["symbol"] == "INVE-B.ST":
                 response.status_code = 200
                 response.json.return_value = [
                     {"revenue": 100, "eps": 12.3, "freeCashFlow": 50}
                 ]
-            elif url.endswith("/stable/balance-sheet-statement/INVE-B.ST"):
+            elif url.endswith("/stable/balance-sheet-statement") and params["symbol"] == "INVE-B.ST":
                 response.status_code = 200
                 response.json.return_value = [{"totalDebt": 30}]
-            elif url.endswith("/stable/cash-flow-statement/INVE-B.ST"):
+            elif url.endswith("/stable/cash-flow-statement") and params["symbol"] == "INVE-B.ST":
                 response.status_code = 200
                 response.json.return_value = [
                     {"netCashProvidedByOperatingActivities": 80, "freeCashFlow": 50}
                 ]
-            elif url.endswith("/stable/ratios/INVE-B.ST"):
+            elif url.endswith("/stable/ratios") and params["symbol"] == "INVE-B.ST":
                 response.status_code = 200
                 response.json.return_value = [
                     {
@@ -75,7 +75,7 @@ class FMPClientTests(unittest.TestCase):
                         "enterpriseValueOverEBIT": 15.2,
                     }
                 ]
-            elif url.endswith("/stable/key-metrics/INVE-B.ST"):
+            elif url.endswith("/stable/key-metrics") and params["symbol"] == "INVE-B.ST":
                 response.status_code = 200
                 response.json.return_value = [
                     {
@@ -86,7 +86,7 @@ class FMPClientTests(unittest.TestCase):
                         "netDebt": 300,
                     }
                 ]
-            elif url.endswith("/stable/financial-growth/INVE-B.ST"):
+            elif url.endswith("/stable/financial-growth") and params["symbol"] == "INVE-B.ST":
                 response.status_code = 200
                 response.json.return_value = [
                     {
