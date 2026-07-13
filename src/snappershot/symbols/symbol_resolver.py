@@ -50,12 +50,42 @@ class SymbolResolver:
     @staticmethod
     def _build_known_mapping(query: str) -> dict[str, Any] | None:
         known: dict[str, dict[str, Any]] = {
-            "investor b": {"name": "Investor B", "symbol": "INVE-B.ST", "exchange": "STO", "currency": "SEK"},
-            "lifco b": {"name": "Lifco AB ser. B", "symbol": "LIFCO-B.ST", "exchange": "STO", "currency": "SEK"},
-            "atlas copco b": {"name": "Atlas Copco AB ser. B", "symbol": "ATCO-B.ST", "exchange": "STO", "currency": "SEK"},
-            "abb": {"name": "ABB Ltd", "symbol": "ABB.ST", "exchange": "STO", "currency": "SEK"},
-            "sandvik": {"name": "Sandvik AB", "symbol": "SAND.ST", "exchange": "STO", "currency": "SEK"},
-            "swedbank a": {"name": "Swedbank AB ser. A", "symbol": "SWED-A.ST", "exchange": "STO", "currency": "SEK"},
+            "investor b": {
+                "name": "Investor B",
+                "symbol": "INVE-B.ST",
+                "exchange": "STO",
+                "currency": "SEK",
+            },
+            "lifco b": {
+                "name": "Lifco AB ser. B",
+                "symbol": "LIFCO-B.ST",
+                "exchange": "STO",
+                "currency": "SEK",
+            },
+            "atlas copco b": {
+                "name": "Atlas Copco AB ser. B",
+                "symbol": "ATCO-B.ST",
+                "exchange": "STO",
+                "currency": "SEK",
+            },
+            "abb": {
+                "name": "ABB Ltd",
+                "symbol": "ABB.ST",
+                "exchange": "STO",
+                "currency": "SEK",
+            },
+            "sandvik": {
+                "name": "Sandvik AB",
+                "symbol": "SAND.ST",
+                "exchange": "STO",
+                "currency": "SEK",
+            },
+            "swedbank a": {
+                "name": "Swedbank AB ser. A",
+                "symbol": "SWED-A.ST",
+                "exchange": "STO",
+                "currency": "SEK",
+            },
         }
         return known.get(SymbolResolver._normalize_query(query))
 

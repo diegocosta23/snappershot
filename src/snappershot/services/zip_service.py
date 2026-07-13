@@ -23,16 +23,18 @@ class ZipService:
         zip_path.parent.mkdir(parents=True, exist_ok=True)
 
         with ZipFile(zip_path, "w", compression=ZIP_DEFLATED) as archive:
-
             for file in files:
-
                 file_path = Path(file)
 
                 if file_path.exists():
                     arcname = file_path.name
                     if base_dir_path is not None:
                         try:
-                            arcname = file_path.resolve().relative_to(base_dir_path).as_posix()
+                            arcname = (
+                                file_path.resolve()
+                                .relative_to(base_dir_path)
+                                .as_posix()
+                            )
                         except ValueError:
                             arcname = file_path.name
                     archive.write(

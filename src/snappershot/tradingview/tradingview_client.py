@@ -18,7 +18,9 @@ class TradingViewClient:
         self.timeframe = TimeframeController(self.window)
         self.snapshot = SnapshotEngine(self.window)
 
-    def capture_screenshots(self, output_folder: str | Path, timeframes: list[str] | None = None) -> list[Path]:
+    def capture_screenshots(
+        self, output_folder: str | Path, timeframes: list[str] | None = None
+    ) -> list[Path]:
         folder = Path(output_folder)
         folder.mkdir(parents=True, exist_ok=True)
         captured: list[Path] = []

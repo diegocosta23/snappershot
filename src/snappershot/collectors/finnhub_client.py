@@ -51,25 +51,38 @@ class FinnhubClient:
             raise RuntimeError("FINNHUB_API_KEY is not configured.")
 
         try:
+            request_params = dict(params) if params else {}
+            request_params["token"] = self.api_key
+
             response = requests.get(
                 f"{self.base_url}{endpoint}",
-                params={**(params or {}), "token": self.api_key},
+                params=request_params,
                 timeout=self.timeout,
             )
             if response.status_code == 403:
                 self._record_error(endpoint, "HTTP 403 (unsupported market or plan)")
-                log.warning("Finnhub %s returned 403 (unsupported market); continuing with fallback data", endpoint)
+                log.warning(
+                    "Finnhub %s returned 403 (unsupported market); continuing with fallback data",
+                    endpoint,
+                )
                 return {}
             if response.status_code >= 400:
                 self._record_error(endpoint, f"HTTP {response.status_code}")
-                log.warning("Finnhub %s failed: %s %s", endpoint, response.status_code, response.text[:300])
+                log.warning(
+                    "Finnhub %s failed: %s %s",
+                    endpoint,
+                    response.status_code,
+                    response.text[:300],
+                )
                 return {}
             payload = response.json()
             self.last_diagnostics["response_count"] += 1
             return payload
         except requests.RequestException as exc:
             self._record_error(endpoint, f"request failed ({type(exc).__name__})")
-            log.warning("Finnhub request failed for %s: %s", endpoint, type(exc).__name__)
+            log.warning(
+                "Finnhub request failed for %s: %s", endpoint, type(exc).__name__
+            )
             return {}
 
     def get_company_profile(self, symbol: str) -> dict[str, Any]:
@@ -93,8 +106,14 @@ class FinnhubClient:
         if not isinstance(data, dict):
             data = {}
         metric_payload = data.get("metric", {})
-        recommendation_trends = self._request("/stock/recommendation", {"symbol": symbol})
-        rec = recommendation_trends[0] if isinstance(recommendation_trends, list) and recommendation_trends else {}
+        recommendation_trends = self._request(
+            "/stock/recommendation", {"symbol": symbol}
+        )
+        rec = (
+            recommendation_trends[0]
+            if isinstance(recommendation_trends, list) and recommendation_trends
+            else {}
+        )
         return {
             "valuation": {
                 "pe": metric_payload.get("peBasicExclExtraTTM"),
@@ -113,7 +132,8 @@ class FinnhubClient:
                 "gross_margin": metric_payload.get("grossMarginTTM"),
                 "operating_margin": metric_payload.get("operatingMarginTTM"),
                 "net_margin": metric_payload.get("netMarginTTM"),
-                "eps": metric_payload.get("epsBasicExclExtraTTM") or metric_payload.get("epsNormalizedAnnual"),
+                "eps": metric_payload.get("epsBasicExclExtraTTM")
+                or metric_payload.get("epsNormalizedAnnual"),
                 "revenue_per_share": metric_payload.get("revenuePerShareTTM"),
             },
             "growth": {
@@ -125,7 +145,8 @@ class FinnhubClient:
                 "debt_to_equity": metric_payload.get("debtToEquity"),
                 "current_ratio": metric_payload.get("currentRatioTTM"),
                 "quick_ratio": metric_payload.get("quickRatioTTM"),
-                "net_debt_to_ebitda": metric_payload.get("netDebtToEBITDATTM") or metric_payload.get("netDebtToEbitdaTTM"),
+                "net_debt_to_ebitda": metric_payload.get("netDebtToEBITDATTM")
+                or metric_payload.get("netDebtToEbitdaTTM"),
             },
             "dividend": {
                 "dividend_yield": metric_payload.get("dividendYieldIndicatedAnnual"),
@@ -139,9 +160,21 @@ class FinnhubClient:
                     "sell": rec.get("sell"),
                 },
                 "target_price": {
-                    "high": data.get("targetPrice", {}).get("targetHigh") if isinstance(data.get("targetPrice"), dict) else None,
-                    "average": data.get("targetPrice", {}).get("targetMean") if isinstance(data.get("targetPrice"), dict) else None,
-                    "low": data.get("targetPrice", {}).get("targetLow") if isinstance(data.get("targetPrice"), dict) else None,
+                    "high": (
+                        data.get("targetPrice", {}).get("targetHigh")
+                        if isinstance(data.get("targetPrice"), dict)
+                        else None
+                    ),
+                    "average": (
+                        data.get("targetPrice", {}).get("targetMean")
+                        if isinstance(data.get("targetPrice"), dict)
+                        else None
+                    ),
+                    "low": (
+                        data.get("targetPrice", {}).get("targetLow")
+                        if isinstance(data.get("targetPrice"), dict)
+                        else None
+                    ),
                 },
             },
         }

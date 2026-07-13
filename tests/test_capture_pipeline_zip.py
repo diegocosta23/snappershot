@@ -2,7 +2,6 @@ import tempfile
 import unittest
 from pathlib import Path
 from zipfile import ZipFile
-from unittest.mock import MagicMock, patch
 
 from src.snappershot.controller.capture_pipeline import CapturePipeline
 from src.snappershot.services.zip_service import ZipService
@@ -39,7 +38,9 @@ class CapturePipelineZipTests(unittest.TestCase):
             analysis_package.write_text("{}", encoding="utf-8")
             zip_path = folder / "company.zip"
 
-            created = zip_service.create_zip(zip_path, [*screenshots, analysis_package], base_dir=folder)
+            created = zip_service.create_zip(
+                zip_path, [*screenshots, analysis_package], base_dir=folder
+            )
 
             with ZipFile(created) as archive:
                 self.assertEqual(

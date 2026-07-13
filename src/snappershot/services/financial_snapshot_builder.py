@@ -9,10 +9,17 @@ from .provider_manager import ProviderManager
 class FinancialSnapshotBuilder:
     def __init__(self) -> None:
         self.provider_manager = ProviderManager()
+
     def _safe_value(self, value: Any) -> Any:
         return value if value not in (None, "", {}, []) else None
 
-    def _point(self, primary_value: Any, primary_source: str, fallback_value: Any = None, fallback_source: str | None = None) -> dict[str, Any]:
+    def _point(
+        self,
+        primary_value: Any,
+        primary_source: str,
+        fallback_value: Any = None,
+        fallback_source: str | None = None,
+    ) -> dict[str, Any]:
         if self._safe_value(primary_value) is not None:
             return {"value": primary_value, "source": primary_source}
         if self._safe_value(fallback_value) is not None:
@@ -43,7 +50,9 @@ class FinancialSnapshotBuilder:
             return False
         for value in section.values():
             if isinstance(value, dict):
-                if value.get("source") == source and self._has_real_value(value.get("value")):
+                if value.get("source") == source and self._has_real_value(
+                    value.get("value")
+                ):
                     return True
             elif source is None and self._has_real_value(value):
                 return True
@@ -102,13 +111,17 @@ class FinancialSnapshotBuilder:
         fields_found = 0
         for section, field in field_paths:
             datapoint = self._deep_get(payload, section, field)
-            if isinstance(datapoint, dict) and self._has_real_value(datapoint.get("value")):
+            if isinstance(datapoint, dict) and self._has_real_value(
+                datapoint.get("value")
+            ):
                 fields_found += 1
             else:
                 missing_fields.append(f"{section}.{field}")
 
         total_fields = len(field_paths)
-        percent_complete = round((fields_found / total_fields) * 100, 2) if total_fields else 0.0
+        percent_complete = (
+            round((fields_found / total_fields) * 100, 2) if total_fields else 0.0
+        )
         return {
             "total_fields": total_fields,
             "fields_found": fields_found,
@@ -125,7 +138,9 @@ class FinancialSnapshotBuilder:
         fmp_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         fmp_data = fmp_data or {}
-        merged = self.provider_manager.build(yahoo_data=yfinance_data, fmp_data=fmp_data, finnhub_data=finnhub_data)
+        merged = self.provider_manager.build(
+            yahoo_data=yfinance_data, fmp_data=fmp_data, finnhub_data=finnhub_data
+        )
         company = merged["company"]
         market = merged["market"]
         key_metrics = merged["key_metrics"]

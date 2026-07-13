@@ -50,7 +50,6 @@ class CompanyService:
         matches: list[tuple[int, int, Company]] = []
 
         for index, company in enumerate(self._companies):
-
             name = self._normalize(company.name)
             ticker = self._normalize(company.ticker)
 
@@ -86,11 +85,9 @@ class CompanyService:
 
 
 if __name__ == "__main__":
-
     service = CompanyService()
 
     while True:
-
         query = input("\nSök företag (Enter för att avsluta): ").strip()
 
         if not query:

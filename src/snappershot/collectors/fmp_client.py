@@ -100,7 +100,11 @@ class FMPClient:
             return []
 
         if isinstance(payload, dict):
-            error_message = payload.get("Error Message") or payload.get("message") or payload.get("error")
+            error_message = (
+                payload.get("Error Message")
+                or payload.get("message")
+                or payload.get("error")
+            )
             if error_message:
                 self._record_error(endpoint, str(error_message)[:180])
                 return []
@@ -112,7 +116,9 @@ class FMPClient:
             return []
 
         self.last_diagnostics["response_count"] += 1
-        self.last_diagnostics["api_response_keys"] += sum(len(record) for record in records)
+        self.last_diagnostics["api_response_keys"] += sum(
+            len(record) for record in records
+        )
         return records
 
     def collect(self, symbol: str) -> dict[str, Any]:
@@ -123,15 +129,16 @@ class FMPClient:
             return self._empty_payload()
 
         responses = {
-            endpoint: self._request(endpoint, symbol)
-            for endpoint in self._ENDPOINTS
+            endpoint: self._request(endpoint, symbol) for endpoint in self._ENDPOINTS
         }
 
         payload = {
             "profile": self._first_record(responses["profile"]),
             "financial_statements": {
                 "income_statement": self._first_record(responses["income-statement"]),
-                "balance_sheet": self._first_record(responses["balance-sheet-statement"]),
+                "balance_sheet": self._first_record(
+                    responses["balance-sheet-statement"]
+                ),
                 "cash_flow": self._first_record(responses["cash-flow-statement"]),
             },
             "ratios": self._first_record(responses["ratios"]),

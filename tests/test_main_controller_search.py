@@ -20,9 +20,14 @@ class MainControllerSearchTests(unittest.TestCase):
     def test_search_text_changed_uses_symbol_resolver(self) -> None:
         view = _ViewStub()
 
-        with patch("src.snappershot.controller.main_controller.CapturePipeline") as pipeline_cls, patch(
-            "src.snappershot.controller.main_controller.SymbolResolver"
-        ) as resolver_cls:
+        with (
+            patch(
+                "src.snappershot.controller.main_controller.CapturePipeline"
+            ) as pipeline_cls,
+            patch(
+                "src.snappershot.controller.main_controller.SymbolResolver"
+            ) as resolver_cls,
+        ):
             pipeline = MagicMock()
             pipeline.company_service = MagicMock()
             pipeline.window = MagicMock()
@@ -30,7 +35,11 @@ class MainControllerSearchTests(unittest.TestCase):
 
             resolver = MagicMock()
             resolver.search.return_value = [
-                {"name": "Investor AB ser. B", "symbol": "INVE-B.ST", "exchange": "Nasdaq Stockholm"}
+                {
+                    "name": "Investor AB ser. B",
+                    "symbol": "INVE-B.ST",
+                    "exchange": "Nasdaq Stockholm",
+                }
             ]
             resolver_cls.return_value = resolver
 
@@ -45,9 +54,14 @@ class MainControllerSearchTests(unittest.TestCase):
     def test_company_selected_uses_display_name_only(self) -> None:
         view = _ViewStub()
 
-        with patch("src.snappershot.controller.main_controller.CapturePipeline") as pipeline_cls, patch(
-            "src.snappershot.controller.main_controller.SymbolResolver"
-        ) as resolver_cls:
+        with (
+            patch(
+                "src.snappershot.controller.main_controller.CapturePipeline"
+            ) as pipeline_cls,
+            patch(
+                "src.snappershot.controller.main_controller.SymbolResolver"
+            ) as resolver_cls,
+        ):
             pipeline = MagicMock()
             pipeline.company_service = MagicMock()
             pipeline.window = MagicMock()
@@ -55,7 +69,9 @@ class MainControllerSearchTests(unittest.TestCase):
             resolver_cls.return_value = MagicMock()
 
             controller = MainController(view)
-            controller.handle_company_selected("Investor AB ser. B\nINVE-B.ST\nNasdaq Stockholm")
+            controller.handle_company_selected(
+                "Investor AB ser. B\nINVE-B.ST\nNasdaq Stockholm"
+            )
 
         self.assertEqual(view.company_text, "Investor AB ser. B")
 

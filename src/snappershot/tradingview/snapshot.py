@@ -95,8 +95,7 @@ class SnapshotEngine:
 
         if not focus_result.ok:
             return StepOutcome.retry(
-                f"Kunde inte fokusera TradingView före capture: "
-                f"{focus_result.message}"
+                f"Kunde inte fokusera TradingView före capture: {focus_result.message}"
             )
 
         rect = None
@@ -117,7 +116,6 @@ class SnapshotEngine:
         time.sleep(POST_FOCUS_SLEEP_SECONDS)
 
         try:
-
             image = ImageGrab.grab(bbox=(left, top, right, bottom))
 
             #
@@ -144,18 +142,15 @@ class SnapshotEngine:
                 )
 
         except Exception as exc:
-
             return StepOutcome.fail(f"ImageGrab.grab misslyckades: {exc}")
 
         try:
-
             image.save(
                 str(output_path),
                 "PNG",
             )
 
         except Exception as exc:
-
             return StepOutcome.fail(f"Kunde inte spara PNG: {exc}")
 
         return self._verify_png(output_path)
@@ -180,11 +175,9 @@ class SnapshotEngine:
             1,
             MAX_RETRIES + 1,
         ):
-
             outcome = self._capture_once(path)
 
             if outcome.ok:
-
                 log.info(
                     "Screenshot sparad och verifierad: %s",
                     path.name,
@@ -196,7 +189,7 @@ class SnapshotEngine:
                 )
 
             log.warning(
-                "SnapshotEngine.capture%s: " "försök %d/%d misslyckades: %s",
+                "SnapshotEngine.capture%s: försök %d/%d misslyckades: %s",
                 label_text,
                 attempt,
                 MAX_RETRIES,
@@ -204,7 +197,6 @@ class SnapshotEngine:
             )
 
             if outcome.should_retry and attempt < MAX_RETRIES:
-
                 try:
                     path.unlink(missing_ok=True)
                 except Exception:
@@ -222,7 +214,7 @@ class SnapshotEngine:
             return outcome
 
         return StepOutcome.fail(
-            f"Kunde inte ta screenshot{label_text} " f"efter {MAX_RETRIES} försök."
+            f"Kunde inte ta screenshot{label_text} efter {MAX_RETRIES} försök."
         )
 
     def capture_window(
@@ -241,11 +233,9 @@ class SnapshotEngine:
     ) -> StepOutcome:
 
         try:
-
             time.sleep(seconds)
 
             return StepOutcome.success(f"Väntade {seconds} sekunder.")
 
         except Exception as exc:
-
             return StepOutcome.fail(f"Kunde inte vänta: {exc}")

@@ -69,7 +69,14 @@ class TradingViewSearch:
             return ""
 
     def _normalize_symbol(self, symbol: str) -> str:
-        return str(symbol or "").replace("OMXSTO:", "").replace("NASDAQ:", "").replace(" ", "").replace("-", "_").casefold()
+        return (
+            str(symbol or "")
+            .replace("OMXSTO:", "")
+            .replace("NASDAQ:", "")
+            .replace(" ", "")
+            .replace("-", "_")
+            .casefold()
+        )
 
     def is_symbol_already_open(self, symbol: str) -> bool:
         title = self._current_chart_title()
@@ -156,9 +163,7 @@ class TradingViewSearch:
             time.sleep(self.SEARCH_DELAY_SECONDS)
 
             if not self._is_expected_foreground():
-                log.warning(
-                    "TradingView tappade fokus efter öppning av Symbol Search."
-                )
+                log.warning("TradingView tappade fokus efter öppning av Symbol Search.")
 
                 if attempt < self.MAX_RETRIES:
                     time.sleep(self.RETRY_DELAY_SECONDS)

@@ -26,7 +26,10 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
                 "financial_statements": {
                     "income_statement": {"revenue": 999999, "eps": 12.8},
                     "balance_sheet": {"totalDebt": 300},
-                    "cash_flow": {"netCashProvidedByOperatingActivities": 80, "freeCashFlow": 60},
+                    "cash_flow": {
+                        "netCashProvidedByOperatingActivities": 80,
+                        "freeCashFlow": 60,
+                    },
                 },
                 "ratios": {
                     "returnOnEquity": 0.21,
@@ -74,7 +77,11 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
                         "net_margin": 0.15,
                     },
                     "growth": {"revenue_growth": 0.08, "eps_growth": 0.1},
-                    "dividend": {"dividend_yield": 0.02, "dividend_rate": 5.5, "payout_ratio": 0.42},
+                    "dividend": {
+                        "dividend_yield": 0.02,
+                        "dividend_rate": 5.5,
+                        "payout_ratio": 0.42,
+                    },
                     "analyst": {
                         "recommendation": {
                             "strong_buy": 2,
@@ -96,7 +103,11 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
                     "industry": "Asset Management",
                 },
                 "price": {"current_price": 249.5, "volume": 12000, "eps": 12.3},
-                "extra": {"fifty_two_week_high": 280.0, "fifty_two_week_low": 210.0, "average_volume": 15000},
+                "extra": {
+                    "fifty_two_week_high": 280.0,
+                    "fifty_two_week_low": 210.0,
+                    "average_volume": 15000,
+                },
                 "fundamentals": {
                     "valuation": {
                         "pe": 17.5,
@@ -113,7 +124,11 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
                     },
                     "growth": {"revenue_growth": 0.07, "eps_growth": 0.09},
                     "financial_strength": {"net_debt_to_ebitda": 0.5},
-                    "dividend": {"yield": 0.021, "dividend_rate": 5.4, "payout_ratio": 0.4},
+                    "dividend": {
+                        "yield": 0.021,
+                        "dividend_rate": 5.4,
+                        "payout_ratio": 0.4,
+                    },
                 },
             },
         )
@@ -123,7 +138,9 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
         self.assertIn("created_at", payload["metadata"])
         self.assertIn("data_sources", payload["metadata"])
         self.assertIn("data_quality", payload["metadata"])
-        self.assertEqual(payload["metadata"]["data_sources"], ["fmp", "yfinance", "finnhub"])
+        self.assertEqual(
+            payload["metadata"]["data_sources"], ["fmp", "yfinance", "finnhub"]
+        )
         self.assertIn("company", payload)
         self.assertIn("market", payload)
         self.assertIn("key_metrics", payload)
@@ -132,16 +149,28 @@ class FinancialSnapshotBuilderTests(unittest.TestCase):
         self.assertIn("dividend", payload)
         self.assertIn("analyst_consensus", payload)
 
-        for section_name in ["company", "market", "key_metrics", "profitability", "growth", "dividend", "analyst_consensus"]:
+        for section_name in [
+            "company",
+            "market",
+            "key_metrics",
+            "profitability",
+            "growth",
+            "dividend",
+            "analyst_consensus",
+        ]:
             for datapoint in payload[section_name].values():
                 self.assertIn("value", datapoint)
                 self.assertIn("source", datapoint)
 
-        self.assertEqual(payload["company"]["name"], {"value": "Investor AB ser. B", "source": "fmp"})
+        self.assertEqual(
+            payload["company"]["name"], {"value": "Investor AB ser. B", "source": "fmp"}
+        )
         self.assertEqual(payload["market"]["current_price"]["source"], "yfinance")
         self.assertEqual(payload["key_metrics"]["return_on_equity"]["source"], "fmp")
         self.assertEqual(payload["cashflow"]["free_cash_flow"]["source"], "fmp")
-        self.assertEqual(payload["analyst_consensus"]["strong_buy"]["source"], "finnhub")
+        self.assertEqual(
+            payload["analyst_consensus"]["strong_buy"]["source"], "finnhub"
+        )
         self.assertNotIn("historical_ohlcv", payload)
 
     def test_data_quality_counts_real_values_only(self) -> None:

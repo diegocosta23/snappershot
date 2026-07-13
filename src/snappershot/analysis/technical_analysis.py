@@ -49,7 +49,9 @@ class TechnicalAnalysis:
         )
         for column in ["open", "high", "low", "close", "volume"]:
             if column in standardized.columns:
-                standardized[column] = pd.to_numeric(standardized[column], errors="coerce")
+                standardized[column] = pd.to_numeric(
+                    standardized[column], errors="coerce"
+                )
         standardized = standardized.dropna(subset=["close"]).sort_index()
         return standardized
 
@@ -69,7 +71,11 @@ class TechnicalAnalysis:
         macd = ema12 - ema26
         signal = macd.ewm(span=9, adjust=False).mean()
         histogram = macd - signal
-        return float(macd.dropna().iloc[-1]), float(signal.dropna().iloc[-1]), float(histogram.dropna().iloc[-1])
+        return (
+            float(macd.dropna().iloc[-1]),
+            float(signal.dropna().iloc[-1]),
+            float(histogram.dropna().iloc[-1]),
+        )
 
     def _calculate_adx(self, frame: pd.DataFrame, window: int = 14) -> float:
         if frame.empty or len(frame) < window + 1:
@@ -104,7 +110,11 @@ class TechnicalAnalysis:
         tr2 = (high - close.shift()).abs()
         tr3 = (low - close.shift()).abs()
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-        return float(tr.rolling(window).mean().dropna().iloc[-1]) if not tr.rolling(window).mean().dropna().empty else 0.0
+        return (
+            float(tr.rolling(window).mean().dropna().iloc[-1])
+            if not tr.rolling(window).mean().dropna().empty
+            else 0.0
+        )
 
     def analyze(self, ohlcv_data: Any) -> dict[str, Any]:
         frame = self._ensure_dataframe(ohlcv_data)
@@ -133,15 +143,29 @@ class TechnicalAnalysis:
         atr = self._calculate_atr(frame)
 
         current_close = float(close.iloc[-1])
-        average_volume = float(self._last_value(frame["volume"].rolling(20).mean())) if "volume" in frame.columns and not frame["volume"].dropna().empty else 0.0
-        latest_volume = float(self._last_value(frame["volume"].dropna())) if "volume" in frame.columns and not frame["volume"].dropna().empty else 0.0
+        average_volume = (
+            float(self._last_value(frame["volume"].rolling(20).mean()))
+            if "volume" in frame.columns and not frame["volume"].dropna().empty
+            else 0.0
+        )
+        latest_volume = (
+            float(self._last_value(frame["volume"].dropna()))
+            if "volume" in frame.columns and not frame["volume"].dropna().empty
+            else 0.0
+        )
         relative_volume = latest_volume / average_volume if average_volume else None
 
         above_sma200 = current_close > sma200
         golden_cross = sma20 > sma50 > sma100 > sma200
         death_cross = sma20 < sma50 < sma100 < sma200
 
-        trend = "bullish" if above_sma200 and rsi > 50 else "bearish" if above_sma200 is False and rsi < 50 else "neutral"
+        trend = (
+            "bullish"
+            if above_sma200 and rsi > 50
+            else "bearish"
+            if above_sma200 is False and rsi < 50
+            else "neutral"
+        )
         if (sma20 > sma50 and sma50 > sma200) or (ema20 > ema50 and ema50 > ema200):
             trend = "bullish"
         if (sma20 < sma50 and sma50 < sma200) or (ema20 < ema50 and ema50 < ema200):
@@ -188,7 +212,9 @@ class TechnicalAnalysis:
             },
             "volume": {
                 "average_volume_20": round(average_volume, 2),
-                "relative_volume": round(relative_volume, 2) if relative_volume is not None else None,
+                "relative_volume": (
+                    round(relative_volume, 2) if relative_volume is not None else None
+                ),
             },
             "above_sma200": above_sma200,
             "golden_cross": golden_cross,

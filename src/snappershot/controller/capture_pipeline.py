@@ -45,7 +45,9 @@ class CapturePipeline:
             except Exception:
                 pass
 
-    def _build_zip_inputs(self, screenshots: list[Path], output_folder: Path) -> list[Path]:
+    def _build_zip_inputs(
+        self, screenshots: list[Path], output_folder: Path
+    ) -> list[Path]:
         zip_inputs = list(screenshots)
         analysis_package_path = output_folder / "analysis_package.json"
         if analysis_package_path.exists():
@@ -76,10 +78,14 @@ class CapturePipeline:
         hwnd = self.window.hwnd
         if hwnd is not None:
             try:
-                client_left, client_top, client_right, client_bottom = win32gui.GetClientRect(hwnd)
+                client_left, client_top, client_right, client_bottom = (
+                    win32gui.GetClientRect(hwnd)
+                )
                 center_client_x = (client_right - client_left) // 2
                 center_client_y = (client_bottom - client_top) // 2
-                center_x, center_y = win32gui.ClientToScreen(hwnd, (center_client_x, center_client_y))
+                center_x, center_y = win32gui.ClientToScreen(
+                    hwnd, (center_client_x, center_client_y)
+                )
                 pyautogui.click(center_x, center_y)
                 time.sleep(0.10)
                 pyautogui.press("escape")
@@ -104,11 +110,15 @@ class CapturePipeline:
                 company_name=company_name,
             )
 
-        if tradingview_symbol and self.search.is_symbol_already_open(tradingview_symbol):
+        if tradingview_symbol and self.search.is_symbol_already_open(
+            tradingview_symbol
+        ):
             self._log(f"TradingView har redan rätt symbol: {tradingview_symbol}")
         else:
             self._log("Öppnar Symbol Search...")
-            search_result = self.search.open_and_select_symbol(tradingview_symbol or company_name)
+            search_result = self.search.open_and_select_symbol(
+                tradingview_symbol or company_name
+            )
             if not search_result.ok:
                 return CaptureResult.failed(
                     f"Could not open Symbol Search: {search_result.message}",
@@ -130,9 +140,13 @@ class CapturePipeline:
         capture_engine = CaptureEngine()
         with ThreadPoolExecutor(max_workers=2) as executor:
             self._log(f"Finnhub -> {company_name}")
-            finnhub_future = executor.submit(capture_engine.finnhub.collect, company_name)
+            finnhub_future = executor.submit(
+                capture_engine.finnhub.collect, company_name
+            )
             self._log(f"Yahoo -> {company_name}")
-            yfinance_future = executor.submit(capture_engine.yfinance.collect, company_name)
+            yfinance_future = executor.submit(
+                capture_engine.yfinance.collect, company_name
+            )
 
             for timeframe in selected_timeframes:
                 self._log(f"Byter timeframe till {timeframe}...")
@@ -165,16 +179,16 @@ class CapturePipeline:
                 self._log(f"✓ Klar: {timeframe}")
 
             try:
-                finnhub_data = finnhub_future.result(timeout=60)
+                finnhub_future.result(timeout=60)
             except Exception as exc:
                 self._log(f"Finnhub collection warning: {exc}")
-                finnhub_data = {}
+
 
             try:
-                yfinance_data = yfinance_future.result(timeout=60)
+                yfinance_future.result(timeout=60)
             except Exception as exc:
                 self._log(f"Yahoo Finance collection warning: {exc}")
-                yfinance_data = {}
+
 
         chart_dir = output_folder / "charts"
         chart_dir.mkdir(parents=True, exist_ok=True)
@@ -194,7 +208,7 @@ class CapturePipeline:
             asyncio.run(
                 capture_engine.run(
                     company_name,
-                    screenshots=chart_files,
+                    screenshots=[str(p) for p in chart_files],
                     output_folder=output_folder,
                 )
             )
@@ -218,16 +232,24 @@ class CapturePipeline:
             )
 
         if not created_zip.exists():
-            return CaptureResult.failed("ZIP filen skapades inte.", company_name=company_name)
+            return CaptureResult.failed(
+                "ZIP filen skapades inte.", company_name=company_name
+            )
 
         try:
             if created_zip.stat().st_size <= 0:
-                return CaptureResult.failed("ZIP filen är tom.", company_name=company_name)
+                return CaptureResult.failed(
+                    "ZIP filen är tom.", company_name=company_name
+                )
         except Exception as exc:
-            return CaptureResult.failed(f"Could not verify ZIP: {exc}", company_name=company_name)
+            return CaptureResult.failed(
+                f"Could not verify ZIP: {exc}", company_name=company_name
+            )
 
         if not zipfile.is_zipfile(created_zip):
-            return CaptureResult.failed("ZIP filen är korrupt.", company_name=company_name)
+            return CaptureResult.failed(
+                "ZIP filen är korrupt.", company_name=company_name
+            )
 
         self._log(f"✓ ZIP klar: {created_zip.name}")
 

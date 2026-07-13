@@ -13,7 +13,9 @@ class FinnhubClientTests(unittest.TestCase):
     def test_loads_api_key_from_env_file_when_env_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             cwd = Path(tmpdir)
-            (cwd / ".env").write_text("FINNHUB_API_KEY=from_env_file\n", encoding="utf-8")
+            (cwd / ".env").write_text(
+                "FINNHUB_API_KEY=from_env_file\n", encoding="utf-8"
+            )
 
             with patch.dict(os.environ, {}, clear=True):
                 old_cwd = Path.cwd()
@@ -28,9 +30,13 @@ class FinnhubClientTests(unittest.TestCase):
     def test_env_variable_takes_priority_over_env_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             cwd = Path(tmpdir)
-            (cwd / ".env").write_text("FINNHUB_API_KEY=from_env_file\n", encoding="utf-8")
+            (cwd / ".env").write_text(
+                "FINNHUB_API_KEY=from_env_file\n", encoding="utf-8"
+            )
 
-            with patch.dict(os.environ, {"FINNHUB_API_KEY": "from_env_var"}, clear=True):
+            with patch.dict(
+                os.environ, {"FINNHUB_API_KEY": "from_env_var"}, clear=True
+            ):
                 old_cwd = Path.cwd()
                 try:
                     os.chdir(cwd)
@@ -43,10 +49,15 @@ class FinnhubClientTests(unittest.TestCase):
     def test_frozen_env_candidates_include_exe_folder_and_bundle_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             exe = Path(tmpdir) / "SnapperShot.exe"
-            with patch.object(sys, "frozen", True, create=True), patch.object(sys, "executable", str(exe)), patch(
-                "src.snappershot.utils.runtime_paths.base_dir",
-                return_value=Path(tmpdir) / "_MEIPASS",
-            ), patch("pathlib.Path.cwd", return_value=Path(tmpdir)):
+            with (
+                patch.object(sys, "frozen", True, create=True),
+                patch.object(sys, "executable", str(exe)),
+                patch(
+                    "src.snappershot.utils.runtime_paths.base_dir",
+                    return_value=Path(tmpdir) / "_MEIPASS",
+                ),
+                patch("pathlib.Path.cwd", return_value=Path(tmpdir)),
+            ):
                 candidates = env_file_candidates()
 
         self.assertIn(Path(tmpdir) / ".env", candidates)
@@ -89,20 +100,33 @@ class FinnhubClientTests(unittest.TestCase):
                 response.json.return_value = {}
             return response
 
-        with patch.dict(os.environ, {"FINNHUB_API_KEY": "test-key"}, clear=True), patch(
-            "src.snappershot.collectors.finnhub_client.requests.get",
-            side_effect=fake_get,
+        with (
+            patch.dict(os.environ, {"FINNHUB_API_KEY": "test-key"}, clear=True),
+            patch(
+                "src.snappershot.collectors.finnhub_client.requests.get",
+                side_effect=fake_get,
+            ),
         ):
             client = FinnhubClient()
             payload = client.collect("INVE-B")
 
-        self.assertEqual(payload["fundamentals"]["profitability"]["revenue_per_share"], 12.5)
-        self.assertEqual(payload["fundamentals"]["financial_strength"]["net_debt_to_ebitda"], 1.7)
+        self.assertEqual(
+            payload["fundamentals"]["profitability"]["revenue_per_share"], 12.5
+        )
+        self.assertEqual(
+            payload["fundamentals"]["financial_strength"]["net_debt_to_ebitda"], 1.7
+        )
         self.assertEqual(payload["fundamentals"]["valuation"]["ev_to_ebit"], 15.2)
-        self.assertEqual(payload["fundamentals"]["analyst"]["recommendation"]["strong_buy"], 2)
+        self.assertEqual(
+            payload["fundamentals"]["analyst"]["recommendation"]["strong_buy"], 2
+        )
         self.assertEqual(payload["fundamentals"]["analyst"]["recommendation"]["buy"], 4)
-        self.assertEqual(payload["fundamentals"]["analyst"]["recommendation"]["hold"], 3)
-        self.assertEqual(payload["fundamentals"]["analyst"]["recommendation"]["sell"], 1)
+        self.assertEqual(
+            payload["fundamentals"]["analyst"]["recommendation"]["hold"], 3
+        )
+        self.assertEqual(
+            payload["fundamentals"]["analyst"]["recommendation"]["sell"], 1
+        )
 
 
 if __name__ == "__main__":

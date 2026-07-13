@@ -39,7 +39,9 @@ class CaptureEngine:
         screenshots: list[Path | str] | None = None,
     ) -> dict[str, Any]:
         _ = screenshots
-        provider_symbols = self.provider_symbols.translate(self.yfinance._resolve_ticker(ticker))
+        provider_symbols = self.provider_symbols.translate(
+            self.yfinance._resolve_ticker(ticker)
+        )
         return self.snapshot_builder.build(
             search_name=ticker,
             resolved_ticker=provider_symbols["yahoo_symbol"],
@@ -54,14 +56,24 @@ class CaptureEngine:
         screenshots: list[Path | str] | None = None,
         output_folder: Path | None = None,
     ) -> dict[str, Any]:
-        output_folder = output_folder or self.storage_service.create_capture_folder(ticker)
+        output_folder = output_folder or self.storage_service.create_capture_folder(
+            ticker
+        )
         screenshots = screenshots or []
 
         try:
-            provider_symbols = self.provider_symbols.translate(self.yfinance._resolve_ticker(ticker))
-            finnhub_task = asyncio.to_thread(self.finnhub.collect, provider_symbols["finnhub_symbol"])
-            yfinance_task = asyncio.to_thread(self.yfinance.collect, provider_symbols["yahoo_symbol"])
-            fmp_task = asyncio.to_thread(self.fmp.collect, provider_symbols["fmp_symbol"])
+            provider_symbols = self.provider_symbols.translate(
+                self.yfinance._resolve_ticker(ticker)
+            )
+            finnhub_task = asyncio.to_thread(
+                self.finnhub.collect, provider_symbols["finnhub_symbol"]
+            )
+            yfinance_task = asyncio.to_thread(
+                self.yfinance.collect, provider_symbols["yahoo_symbol"]
+            )
+            fmp_task = asyncio.to_thread(
+                self.fmp.collect, provider_symbols["fmp_symbol"]
+            )
 
             finnhub_data, yfinance_data, fmp_data = await asyncio.gather(
                 finnhub_task,
@@ -80,10 +92,14 @@ class CaptureEngine:
                 log.warning("FMP collection failed: %s", fmp_data)
                 fmp_data = {}
 
-            payload = self._build_analysis_payload(ticker, finnhub_data, yfinance_data, fmp_data, screenshots)
+            payload = self._build_analysis_payload(
+                ticker, finnhub_data, yfinance_data, fmp_data, screenshots
+            )
             export_path = build_analysis_package(payload, output_folder)
             self.store.save_capture(ticker, payload)
-            export_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+            export_path.write_text(
+                json.dumps(payload, indent=2, default=str), encoding="utf-8"
+            )
             return payload
         except Exception as exc:
             log.exception("Capture engine failed: %s", exc)

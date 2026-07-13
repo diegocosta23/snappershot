@@ -21,56 +21,46 @@ class SQLiteStore:
 
     def _init_db(self) -> None:
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS stocks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     payload TEXT
                 )
-                """
-            )
-            conn.execute(
-                """
+                """)
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS fundamentals (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     payload TEXT
                 )
-                """
-            )
-            conn.execute(
-                """
+                """)
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS prices (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     payload TEXT
                 )
-                """
-            )
-            conn.execute(
-                """
+                """)
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS screenshots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     payload TEXT
                 )
-                """
-            )
-            conn.execute(
-                """
+                """)
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS analysis_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ticker TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     payload TEXT
                 )
-                """
-            )
+                """)
             conn.commit()
 
     def save_capture(self, ticker: str, payload: dict[str, Any]) -> None:

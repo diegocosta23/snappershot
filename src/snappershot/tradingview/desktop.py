@@ -20,7 +20,6 @@ class TradingViewDesktop:
             windows = Desktop(backend="uia").windows()
 
             for window in windows:
-
                 title = window.window_text()
 
                 if "TradingView" in title:

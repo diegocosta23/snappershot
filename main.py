@@ -2,7 +2,7 @@ from src.snappershot.app.application import run
 
 
 def main() -> None:
-    
+
     run()
 
 

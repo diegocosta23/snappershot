@@ -14,7 +14,9 @@ log = logging.getLogger(__name__)
 class YahooFinanceClient:
     """Collect OHLCV, statements, and extra market data from Yahoo Finance."""
 
-    def __init__(self, timeout: int = 20, symbol_resolver: SymbolResolver | None = None) -> None:
+    def __init__(
+        self, timeout: int = 20, symbol_resolver: SymbolResolver | None = None
+    ) -> None:
         self.timeout = timeout
         self.symbol_resolver = symbol_resolver or SymbolResolver()
 
@@ -47,11 +49,14 @@ class YahooFinanceClient:
             if isinstance(first_row, pd.Series):
                 return first_row.iloc[0] if len(first_row) == 1 else first_row.to_dict()
             return first_row
-        if hasattr(value, "item") and not isinstance(value, (str, bytes, dict, list, tuple, set)):
-            try:
+        try:
+            import numpy as np
+
+            if isinstance(value, np.generic):
                 return value.item()
-            except Exception:
-                return value
+        except Exception:
+            pass
+
         return value
 
     def _data_point(self, value: Any) -> dict[str, Any]:
@@ -89,7 +94,8 @@ class YahooFinanceClient:
     def _build_raw_dataset(self, ticker: Any, info: dict[str, Any]) -> dict[str, Any]:
         company = self._data_section(
             {
-                "name": self._safe_get(info, "longName") or self._safe_get(info, "shortName"),
+                "name": self._safe_get(info, "longName")
+                or self._safe_get(info, "shortName"),
                 "ticker": self._safe_get(info, "symbol"),
                 "exchange": self._safe_get(info, "exchange"),
                 "sector": self._safe_get(info, "sector"),
@@ -118,7 +124,8 @@ class YahooFinanceClient:
                 "operating_margin": self._safe_get(info, "operatingMargins"),
                 "net_margin": self._safe_get(info, "profitMargins"),
                 "roe": self._safe_get(info, "returnOnEquity"),
-                "roic": self._safe_get(info, "returnOnCapitalEmployed") or self._safe_get(info, "returnOnAssets"),
+                "roic": self._safe_get(info, "returnOnCapitalEmployed")
+                or self._safe_get(info, "returnOnAssets"),
             }
         )
 
@@ -154,7 +161,9 @@ class YahooFinanceClient:
                 "dividend_rate": self._safe_get(info, "dividendRate"),
                 "dividend_yield": self._safe_get(info, "dividendYield"),
                 "payout_ratio": self._safe_get(info, "payoutRatio"),
-                "latest_dividend": self._latest_dividend(getattr(ticker, "dividends", None)),
+                "latest_dividend": self._latest_dividend(
+                    getattr(ticker, "dividends", None)
+                ),
             }
         )
 
@@ -173,7 +182,7 @@ class YahooFinanceClient:
             }
         )
 
-        raw_dataset = {
+        raw_dataset: dict[str, Any] = {
             "company": company,
             "valuation": valuation,
             "profitability": profitability,
@@ -195,7 +204,9 @@ class YahooFinanceClient:
         raw_dataset["data_completeness"] = {
             "fields_total": fields_total,
             "fields_found": fields_found,
-            "percent": round((fields_found / fields_total) * 100, 2) if fields_total else 0.0,
+            "percent": (
+                round((fields_found / fields_total) * 100, 2) if fields_total else 0.0
+            ),
         }
         return raw_dataset
 
@@ -246,7 +257,8 @@ class YahooFinanceClient:
         }
 
         company = {
-            "name": self._safe_get(info, "longName") or self._safe_get(info, "shortName"),
+            "name": self._safe_get(info, "longName")
+            or self._safe_get(info, "shortName"),
             "ticker": self._safe_get(info, "symbol"),
             "exchange": self._safe_get(info, "exchange"),
             "sector": self._safe_get(info, "sector"),
@@ -271,7 +283,8 @@ class YahooFinanceClient:
                 "operating_margin": self._safe_get(info, "operatingMargins"),
                 "net_margin": self._safe_get(info, "profitMargins"),
                 "roe": self._safe_get(info, "returnOnEquity"),
-                "roic": self._safe_get(info, "returnOnCapitalEmployed") or self._safe_get(info, "returnOnAssets"),
+                "roic": self._safe_get(info, "returnOnCapitalEmployed")
+                or self._safe_get(info, "returnOnAssets"),
             },
             "growth": {
                 "revenue_growth": self._safe_get(info, "revenueGrowth"),

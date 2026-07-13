@@ -187,7 +187,9 @@ class MainController:
         self._call_view("set_company_results", self.search_companies(query))
 
     def _refresh_company_results_from_current_text(self) -> None:
-        self._call_view("set_company_results", self.search_companies(self.current_company_text()))
+        self._call_view(
+            "set_company_results", self.search_companies(self.current_company_text())
+        )
 
     def current_company_text(self) -> str:
         value = self._call_view("current_company_text", default="")
@@ -267,7 +269,11 @@ class MainController:
             result = self.capture_pipeline.capture_company(
                 archive_name,
                 timeframes,
-                self.selected_company.tradingview_symbol if self.selected_company else None,
+                (
+                    self.selected_company.tradingview_symbol
+                    if self.selected_company
+                    else None
+                ),
             )
             self._apply_capture_result(result)
         except Exception as exc:
